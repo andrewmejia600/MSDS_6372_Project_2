@@ -53,6 +53,7 @@ plot(Bank_mrkt_data[,12:15], col = Bank_mrkt_data$y)
 plot(Bank_mrkt_data[,16:20], col = Bank_mrkt_data$y)
 
 #need to make scatter plots based on differences in response variables of colors see HW for LDA     
+#We can see there is a disporationate amount of nos to yes records
 ggpairs(Bank_mrkt_data[,c(21, 1:3)], ggplot2::aes(colour=y))
 
 ggpairs(Bank_mrkt_data[,c(21, 4:7)],  ggplot2::aes(colour=y))
@@ -63,9 +64,34 @@ ggpairs(Bank_mrkt_data[,c(21, 12:15)],  ggplot2::aes(colour=y))
 
 ggpairs(Bank_mrkt_data[,c(21, 16:20)],  ggplot2::aes(colour=y))
 
-Bank_mrkt_data[, c(21, 1:3)] %>% ggplot(aes(x = y, y = age )) + geom_point()
+Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_point()
 
-Bank_mrkt_data[, c(21, 1:3)] %>% ggplot(aes(x = y, y = job )) + geom_boxplot()
+Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_boxplot()
+
+Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_col()
+
+
+#see a limited seperation of duration and month 
+Bank_mrkt_data %>% ggplot(aes(x = duration, y = month , color = y)) + geom_point()
+
+Bank_mrkt_data %>% ggplot(aes(x = duration, y = month , color = y)) + geom_point()
+
+
+#See a clear seperation between duration and age 
+Bank_mrkt_data %>% ggplot(aes(x = age, y = duration , color = y)) + geom_point()
+
+# see a clear seperation between duration and campaingn
+Bank_mrkt_data %>% ggplot(aes(x = duration, y = campaign , color = y)) + geom_point()
+
+
+
+
+
+
+
+
+
+
 
 
 

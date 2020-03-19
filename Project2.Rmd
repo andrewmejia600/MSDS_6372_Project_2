@@ -46,6 +46,14 @@ Bank_mrkt_data %>% filter(!complete.cases(Bank_mrkt_data))
 
 summary(Bank_mrkt_data)
 
+#unknown records 
+
+dim(Bank_mrkt_data %>% filter(grepl("unknown", Bank_mrkt_data$education)==TRUE))[1]
+dim(Bank_mrkt_data %>% filter(grepl("unknown", Bank_mrkt_data$job)==TRUE))[1]
+
+
+
+
 plot(Bank_mrkt_data[,1:3], col = Bank_mrkt_data$y)
 plot(Bank_mrkt_data[,4:7], col = Bank_mrkt_data$y)
 plot(Bank_mrkt_data[,8:11], col = Bank_mrkt_data$y)
@@ -91,9 +99,16 @@ Bank_mrkt_data %>% ggplot(aes(x = duration, y = campaign , color = y)) + geom_po
 
 Bank_mrkt_data %>% ggplot(aes(x = previous, y = campaign , color = y)) + geom_point()
 
+#Star to see a clear seperation between nr. employed and cons.price.idx   
 Bank_mrkt_data %>% ggplot(aes(x = nr.employed, y = cons.price.idx , color = y)) + geom_boxplot()
 
 Bank_mrkt_data %>% ggplot(aes(x = job, y = cons.price.idx , color = y)) + geom_boxplot()
+
+Bank_mrkt_data %>% ggplot(aes(x = nr.employed, y = cons.conf.idx , color = y)) + geom_boxplot()
+
+  
+
+
 
 
 

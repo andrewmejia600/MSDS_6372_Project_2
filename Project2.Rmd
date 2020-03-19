@@ -64,11 +64,17 @@ ggpairs(Bank_mrkt_data[,c(21, 12:15)],  ggplot2::aes(colour=y))
 
 ggpairs(Bank_mrkt_data[,c(21, 16:20)],  ggplot2::aes(colour=y))
 
+
+
+
 Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_point()
 
 Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_boxplot()
 
+Bank_mrkt_data %>% ggplot(aes(x = job, y = age , color = y)) + geom_boxplot()
+
 Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_col()
+
 
 
 #see a limited seperation of duration and month 
@@ -83,22 +89,23 @@ Bank_mrkt_data %>% ggplot(aes(x = age, y = duration , color = y)) + geom_point()
 # see a clear seperation between duration and campaingn
 Bank_mrkt_data %>% ggplot(aes(x = duration, y = campaign , color = y)) + geom_point()
 
+Bank_mrkt_data %>% ggplot(aes(x = previous, y = campaign , color = y)) + geom_point()
+
+Bank_mrkt_data %>% ggplot(aes(x = nr.employed, y = cons.price.idx , color = y)) + geom_boxplot()
+
+Bank_mrkt_data %>% ggplot(aes(x = job, y = cons.price.idx , color = y)) + geom_boxplot()
 
 
 
 
+```
 
+```{r}
+library(MASS)
+library(stringr)
 
+colname_vec = str_replace_all(toString(names(Bank_mrkt_data)[1:20]),"\\,", "\\ +")
 
-
-
-
-
-
-  
- 
-
-
-
+lda_analysis = lda(y ~ age + job + marital + education + default + housing + loan + contact + month + day_of_week + duration + campaign + pdays + previous + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data)
 
 ```

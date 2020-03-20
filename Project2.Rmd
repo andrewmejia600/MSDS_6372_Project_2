@@ -87,7 +87,7 @@ Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_col()
 
 #Note Duration can only be used as a sanity check 
 
-lm_fit = lm(y ~ duration, data = Bank_mrkt_data)
+
 
 boxplot(Bank_mrkt_data$duration ~ Bank_mrkt_data$y, data = Bank_mrkt_data)
 

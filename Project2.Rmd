@@ -85,6 +85,12 @@ Bank_mrkt_data %>% ggplot(aes(x = job, y = age , color = y)) + geom_boxplot()
 Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_col()
 
 
+#Note Duration can only be used as a sanity check 
+
+lm_fit = lm(y ~ duration, data = Bank_mrkt_data)
+
+boxplot(Bank_mrkt_data$duration ~ Bank_mrkt_data$y, data = Bank_mrkt_data)
+
 
 #see a limited seperation of duration and month 
 Bank_mrkt_data %>% ggplot(aes(x = duration, y = month , color = y)) + geom_point()
@@ -98,7 +104,7 @@ Bank_mrkt_data %>% ggplot(aes(x = age, y = duration , color = y)) + geom_point()
 # see a clear seperation between duration and campaingn
 Bank_mrkt_data %>% ggplot(aes(x = duration, y = campaign , color = y)) + geom_point()
 
-Bank_mrkt_data %>% ggplot(aes(x = previous, y = campaign , color = y)) + geom_point()
+#Bank_mrkt_data %>% ggplot(aes(x = previous, y = campaign , color = y)) + geom_point()
 
 #Star to see a clear seperation between nr. employed and cons.price.idx   
 Bank_mrkt_data %>% ggplot(aes(x = nr.employed, y = cons.price.idx , color = y)) + geom_boxplot()

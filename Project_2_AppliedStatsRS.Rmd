@@ -1,0 +1,128 @@
+---
+title: "Applied Statistics 6372 Project 2"
+author: "Rajesh satluri"
+date: "3/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+
+library(knitr)
+library(pander)
+library(tidyverse)
+library(broom)
+library(scatterplot3d)
+library(DataCombine)
+library(corrplot)
+library(caret)
+library(kableExtra)
+library(lubridate)
+library(stringr)
+library(sjPlot) 
+
+
+bank_addl  = read.csv(file.choose(),header = TRUE, sep = ';')
+
+glimpse(bank_addl)
+
+#install.packages("inspectdf")
+library(inspectdf)
+
+
+# Inspect Categorical Levels
+bank_ins_cat=inspect_cat(bank_addl)
+
+bank_ins_cat
+bank_ins_cat$levels
+show_plot(bank_ins_cat)
+
+# Inspect Contious variables
+head(bank_addl)
+bank_ins_con = inspect_num(bank_addl)
+
+# Checking dependent variabe. resampling is required. imbalanced...
+prop.table(table(bank_addl$y))
+
+## Inspect previous. Clients contacted previously
+table(bank_addl$previous)
+
+##tally is a convenient wrapper for summarise that will either call n or sum(n) depending on whether you're tallying for the first time, or #re-tallying. count() is similar, but also does the group_by for you.
+bank_addl %>% group_by(pdays) %>% tally() %>% arrange(desc(n)) %>% head()
+
+
+
+# Find Correlation between prevous and pdays
+cor(bank_addl$previous, bank_addl$pdays)  ## Note these are correlated. we may drop pdays
+
+
+# correlaion between previous and response y. There is relation here.
+ggplot(bank_addl %>% group_by(previous, y) %>%  tally(), 
+       aes(previous, n, fill = y)) +
+      geom_col() +
+      theme_bw()
+
+# As Andrew found duration is biased
+
+ggplot(bank_addl %>% group_by(duration, y) %>%  tally(), 
+       aes(duration, n, fill = y)) +
+      geom_col() +
+      theme_bw()
+
+ggplot(bank_addl, aes(duration, fill = y)) +
+  geom_density(alpha = 0.5) +
+  theme_bw()
+### remove duration
+
+
+## Compare contious variables 
+cor_numericVal = inspect_cor(bank_addl)
+show_plot(cor_numericVal)
+
+
+cor_numericVal1 <- select_if(bank_addl, is.numeric) %>% cor()
+corrplot(cor_numericVal1, method = "number")
+
+corrplot(cor_numericVal1, method = "square",  tl.srt = 50, tl.col = "black", tl.cex = 0.6, title = "Correlation of Variables", mar=c(0,0,1,0))
+
+
+
+# select categorical variables
+categorical_variables = bank_addl %>% select_if(is.factor) %>% names()
+
+
+# remove the response
+response_ind <- match('y', categorical_variables)
+categorical_variables <- categorical_variables[-response_ind]
+
+# plot categorical variables
+for (i in categorical_variables) {
+  print(i)
+  print(bank_addl[i])
+   print(sjt.xtab(bank_addl$y,bank_addl[i]))
+  print(
+    sjp.xtab(bank_addl$y,
+         bank_addl[i],
+         margin = "row",
+         bar.pos = "stack",
+         axis.titles = "y",
+         legend.title = i)
+  )
+ 
+}
+
+
+
+
+
+
+```

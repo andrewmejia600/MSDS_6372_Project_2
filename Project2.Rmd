@@ -126,11 +126,23 @@ Bank_mrkt_data %>% ggplot(aes(x = nr.employed, y = cons.conf.idx , color = y)) +
 library(MASS)
 library(stringr)
 
+#Test Train Splits 
+
+#Down Sampling 
+set.seed(1234)
 Bank_mrkt_data_dwn_sample = downSample(Bank_mrkt_data[,1:20], Bank_mrkt_data[,21])
+
+#Controling Sampling by modifying the p in the create partition for creating the test train splits from the downsampled data for training. 
+set.seed(1234)
+Bank_mrkt_data_partition_idx = createDataPartition(Bank_mrkt_data_dwn_sample$Class, p=.5, list = FALSE, times = 1)
+
+Bank_mrkt_data_partition_train = Bank_mrkt_data_dwn_sample[Bank_mrkt_data_partition_idx,]
+Bank_mrkt_data_partition_test = Bank_mrkt_data_dwn_sample[-Bank_mrkt_data_partition_idx,]
+
 
 
 colname_vec = str_replace_all(toString(names(Bank_mrkt_data)[1:20]),"\\,", "\\ +")
 
-lda_analysis = lda(Class ~ age + job + marital + education + default + housing + loan + contact + month + day_of_week + duration + campaign + pdays + previous + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_dwn_sample)
+lda_analysis = lda(Class ~ age + job + marital + education + default + housing + loan + contact + month + day_of_week + duration + campaign + pdays + previous + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train)
 
 ```

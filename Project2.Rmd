@@ -131,6 +131,7 @@ fig = fig %>% layout(scene = list(xaxis = list(title = 'Duration'),
 fig
   
 
+
 fig2 = plot_ly(Bank_mrkt_data, x = Bank_mrkt_data$duration, y = Bank_mrkt_data$campaign, z = Bank_mrkt_data$y, color = Bank_mrkt_data$y, colors = c('#BF382A', '#0C4B8E'))
 fig2 = fig2 %>% add_markers()
 fig2 = fig2 %>% layout(scene = list(xaxis = list(title = 'Duration'),
@@ -141,6 +142,36 @@ fig2
 
 
 
+
+
+
+
+fig3 = plot_ly(Bank_mrkt_data, x = Bank_mrkt_data$euribor3m, y = Bank_mrkt_data$emp.var.rate, z = Bank_mrkt_data$y, color = Bank_mrkt_data$y, colors = c('#BF382A', '#0C4B8E'))
+fig3 = fig3 %>% add_markers()
+fig3 = fig3 %>% layout(scene = list(xaxis = list(title = 'Euribor3m'),
+                     yaxis = list(title = 'Emp.Var.Rate'),
+                     zaxis = list(title = 'Outcome')))
+
+fig3
+
+
+
+fig4 = plot_ly(Bank_mrkt_data, x = Bank_mrkt_data$nr.employed, y = Bank_mrkt_data$emp.var.rate, z = Bank_mrkt_data$y, color = Bank_mrkt_data$y, colors = c('#BF382A', '#0C4B8E'))
+fig4 = fig4 %>% add_markers()
+fig4 = fig4 %>% layout(scene = list(xaxis = list(title = 'nr.employed'),
+                     yaxis = list(title = 'emp.var.rate'),
+                     zaxis = list(title = 'Outcome')))
+
+fig4
+
+
+fig5 = plot_ly(Bank_mrkt_data, x = Bank_mrkt_data$nr.employed, y = Bank_mrkt_data$euribor3m, z = Bank_mrkt_data$y, color = Bank_mrkt_data$y, colors = c('#BF382A', '#0C4B8E'))
+fig5 = fig5 %>% add_markers()
+fig5 = fig5 %>% layout(scene = list(xaxis = list(title = 'nr.employed'),
+                     yaxis = list(title = 'emp.var.rate'),
+                     zaxis = list(title = 'Outcome')))
+
+fig5
 
 
 

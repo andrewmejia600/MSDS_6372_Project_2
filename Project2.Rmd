@@ -36,6 +36,7 @@ library(ggplot2)
 library(GGally)
 library(dplyr)
 library(caret)
+library(plotly)
 
 Bank_mrkt_data  = read.csv(file.choose(),header = TRUE, sep = ';')
 
@@ -99,10 +100,10 @@ Bank_mrkt_data %>% ggplot(aes(x = duration, y = month , color = y)) + geom_point
 
 
 #See a clear seperation between duration and age 
-Bank_mrkt_data %>% ggplot(aes(x = age, y = duration , color = y)) + geom_point()
+Bank_mrkt_data %>% ggplot(aes(x = age, y = duration , color = y)) + geom_point() + geom_jitter()
 
 # see a clear seperation between duration and campaingn
-Bank_mrkt_data %>% ggplot(aes(x = duration, y = campaign , color = y)) + geom_point()
+Bank_mrkt_data %>% ggplot(aes(x = duration, y = campaign , color = y)) + geom_point() + geom_jitter()
 
 #Bank_mrkt_data %>% ggplot(aes(x = previous, y = campaign , color = y)) + geom_point()
 
@@ -113,7 +114,30 @@ Bank_mrkt_data %>% ggplot(aes(x = job, y = cons.price.idx , color = y)) + geom_b
 
 Bank_mrkt_data %>% ggplot(aes(x = nr.employed, y = cons.conf.idx , color = y)) + geom_boxplot()
 
+Bank_mrkt_data %>% ggplot(aes(x = euribor3m, y = emp.var.rate, color = y)) + geom_point() + geom_jitter()
+
+Bank_mrkt_data %>% ggplot(aes(x = nr.employed, y = emp.var.rate, color = y)) + geom_point() + geom_jitter()
+
+Bank_mrkt_data %>% ggplot(aes(x =euribor3m , y = nr.employed, color = y)) + geom_point() + geom_jitter()
+
+#3d Graphs of duration 
+
+fig = plot_ly(Bank_mrkt_data, x = Bank_mrkt_data$duration, y = Bank_mrkt_data$age, z = Bank_mrkt_data$y, color = Bank_mrkt_data$y, colors = c('#BF382A', '#0C4B8E'))
+fig = fig %>% add_markers()
+fig = fig %>% layout(scene = list(xaxis = list(title = 'Duration'),
+                     yaxis = list(title = 'Age'),
+                     zaxis = list(title = 'Outcome')))
+
+fig
   
+
+fig2 = plot_ly(Bank_mrkt_data, x = Bank_mrkt_data$duration, y = Bank_mrkt_data$campaign, z = Bank_mrkt_data$y, color = Bank_mrkt_data$y, colors = c('#BF382A', '#0C4B8E'))
+fig2 = fig2 %>% add_markers()
+fig2 = fig2 %>% layout(scene = list(xaxis = list(title = 'Duration'),
+                     yaxis = list(title = 'Campaign'),
+                     zaxis = list(title = 'Outcome')))
+
+fig2
 
 
 

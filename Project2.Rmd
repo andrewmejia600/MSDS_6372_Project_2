@@ -1,6 +1,6 @@
 ---
 title: "DS6372_Project2"
-author: "AndrewMejia"
+author: "AndrewMejia"     
 date: "3/15/2020"
 output: html_document
 ---
@@ -9,23 +9,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
@@ -241,5 +224,57 @@ ME = (x[2,1]+x[1,2])/sum(x)
 ME
 #Calculating overall accuracy
 1-ME
+
+```
+
+PCA Analysis 
+```{r}
+pairs(Bank_mrkt_data_partition_train[, c(1,11,12,13,14,16,17,18,19,20)], col = Bank_mrkt_data_partition_train$Class)
+
+#bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,12,13,14,16,17,18,19,20)]
+
+#bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,12,20)]
+
+bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,16,18)]
+
+pc.result = prcomp(bank_train_reduced,scale.=TRUE)
+pc.scores = pc.result$x
+
+pc.result
+pairs(pc.scores)
+
+
+```
+
+```{r}
+
+par(mfrow=c(1,2))
+eigenvals<-(pc.result$sdev)^2
+plot(1:dim(bank_train_reduced)[2],eigenvals/sum(eigenvals),type="l",main="Scree Plot",ylab="Prop. Var. Explained")
+cumulative.prop<-cumsum(eigenvals/sum(eigenvals))
+plot(1:dim(bank_train_reduced)[2],cumulative.prop,type="l",main="Cumulative proportion",ylim=c(0,1))
+
+
+```
+
+```{r}
+par(mfrow=c(1,1))
+
+##Minimal PCAs needed to have cumulative explained variance higher than .9
+
+minimal.pca <- which(cumulative.prop>0.9)[1]
+minimal.pca
+```
+
+Ading the response column to the PCs 
+```{r}
+pc.scores = data.frame(pc.scores)
+pc.scores$Class = Bank_mrkt_data_partition_train$Class
+
+ggplot(data = pc.scores, aes(x = PC1, y = PC2 )) + geom_point(aes(col=pc.scores$Class), size = 1) + ggtitle("PCA of Deposits ")
+
+ggplot(data = pc.scores, aes(x = PC2, y = PC3 )) + geom_point(aes(col=pc.scores$Class), size = 1) + ggtitle("PCA of Deposits ")
+
+ggplot(data = pc.scores, aes(x = PC3, y = PC4 )) + geom_point(aes(col=pc.scores$Class), size = 1) + ggtitle("PCA of Deposits ")
 
 ```

@@ -229,13 +229,28 @@ ME
 
 PCA Analysis 
 ```{r}
+#Balanced test train split
 pairs(Bank_mrkt_data_partition_train[, c(1,11,12,13,14,16,17,18,19,20)], col = Bank_mrkt_data_partition_train$Class)
+
+#Not balanced, only 11% is yes 
+pairs(Bank_mrkt_data[, c(1,11,12,13,14,16,17,18,19,20)], col = Bank_mrkt_data$y)
 
 #bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,12,13,14,16,17,18,19,20)]
 
 #bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,12,20)]
 
-bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,16,18)]
+#bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,16,18)]
+
+
+#bank_train_reduced = Bank_mrkt_data[, c(1,12,18)]
+
+#promising 
+bank_train_reduced = Bank_mrkt_data[,c(1,11,12,16)]
+
+#Also promising correlated vars 
+#bank_train_reduced = Bank_mrkt_data[,c(1,11,16)]
+
+pairs(bank_train_reduced, col = Bank_mrkt_data$y)
 
 pc.result = prcomp(bank_train_reduced,scale.=TRUE)
 pc.scores = pc.result$x
@@ -269,11 +284,13 @@ minimal.pca
 Ading the response column to the PCs 
 ```{r}
 pc.scores = data.frame(pc.scores)
-pc.scores$Class = Bank_mrkt_data_partition_train$Class
+#pc.scores$Class = Bank_mrkt_data_partition_train$Class
+pc.scores$Class = Bank_mrkt_data$y
 
 ggplot(data = pc.scores, aes(x = PC1, y = PC2 )) + geom_point(aes(col=pc.scores$Class), size = 1) + ggtitle("PCA of Deposits ")
 
 ggplot(data = pc.scores, aes(x = PC2, y = PC3 )) + geom_point(aes(col=pc.scores$Class), size = 1) + ggtitle("PCA of Deposits ")
+
 
 ggplot(data = pc.scores, aes(x = PC3, y = PC4 )) + geom_point(aes(col=pc.scores$Class), size = 1) + ggtitle("PCA of Deposits ")
 

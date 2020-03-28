@@ -183,7 +183,7 @@ colname_vec = str_replace_all(toString(names(Bank_mrkt_data)[1:20]),"\\,", "\\ +
 
 #lda_analysis = lda(Class ~ age + job + marital + education + default + housing + loan + contact + month + day_of_week + duration + campaign + pdays + previous + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train)
 
-#LDA on continous variables 
+#LDA on continous variables --- Highest Accuracy 
 
 lda_analysis = lda(Class ~ age +  duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train)
 
@@ -224,6 +224,32 @@ ME = (x[2,1]+x[1,2])/sum(x)
 ME
 #Calculating overall accuracy
 1-ME
+
+lda_analysis = lda(Class ~ age +  duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train, prior =  c(.90,.10))
+
+pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
+Truth = Bank_mrkt_data_partition_test$Class
+x = table(pred,Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+#qda analysis 
+qda_analysis = qda(Class ~ age +  duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train)
+
+pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
+Truth = Bank_mrkt_data_partition_test$Class
+x = table(pred,Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
 
 ```
 

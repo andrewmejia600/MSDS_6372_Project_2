@@ -15,8 +15,67 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r}
 
+
+# Introduction
+
+The data is related with direct marketing campaigns of a Portuguese banking institution. The marketing campaigns were based on phone calls. Often, more than one contact to the same client was required, in order to access if the product (bank term deposit) would be ('yes') or not ('no') subscribed.
+sification goal is to predict if the client will subscribe a term deposit (variable y).
+
+
+
+## Dataset
+There are four datasets:
+1) bank-additional-full.csv with all examples (41188) and 20 inputs, ordered by date (from May 2008 to November 2010), very close to the data analyzed in [Moro et al., 2014]
+2) bank-additional.csv with 10% of the examples (4119), randomly selected from 1), and 20 inputs.
+3) bank-full.csv with all examples and 17 inputs, ordered by date (older version of this dataset with less inputs).
+4) bank.csv with 10% of the examples and 17 inputs, randomly selected from 3 (older version of this dataset with less inputs).
+The smallest datasets are provided to test more computationally demanding machine learning algorithms (e.g., SVM).
+
+The classification goal is to predict if the client will subscribe (yes/no) a term deposit (variable y).
+
+Attribute Information:
+
+Input variables:
+
+# bank client data:
+
+1 - age (numeric)
+2 - job : type of job (categorical: 'admin.','blue-collar','entrepreneur','housemaid','management','retired','self-employed','services','student','technician','unemployed','unknown')
+3 - marital : marital status (categorical: 'divorced','married','single','unknown'; note: 'divorced' means divorced or widowed)
+4 - education (categorical: 'basic.4y','basic.6y','basic.9y','high.school','illiterate','professional.course','university.degree','unknown')
+5 - default: has credit in default? (categorical: 'no','yes','unknown')
+6 - housing: has housing loan? (categorical: 'no','yes','unknown')
+7 - loan: has personal loan? (categorical: 'no','yes','unknown')
+
+# related with the last contact of the current campaign:
+
+8 - contact: contact communication type (categorical: 'cellular','telephone')
+9 - month: last contact month of year (categorical: 'jan', 'feb', 'mar', ..., 'nov', 'dec')
+10 - day_of_week: last contact day of the week (categorical: 'mon','tue','wed','thu','fri')
+11 - duration: last contact duration, in seconds (numeric). Important note: this attribute highly affects the output target (e.g., if duration=0 then y='no'). Yet, the duration is not known before a call is performed. Also, after the end of the call y is obviously known. Thus, this input should only be included for benchmark purposes and should be discarded if the intention is to have a realistic predictive model.
+
+# other attributes:
+
+12 - campaign: number of contacts performed during this campaign and for this client (numeric, includes last contact)
+13 - pdays: number of days that passed by after the client was last contacted from a previous campaign (numeric; 999 means client was not previously contacted)
+14 - previous: number of contacts performed before this campaign and for this client (numeric)
+15 - poutcome: outcome of the previous marketing campaign (categorical: 'failure','nonexistent','success')
+
+# social and economic context attributes
+
+16 - emp.var.rate: employment variation rate - quarterly indicator (numeric)
+17 - cons.price.idx: consumer price index - monthly indicator (numeric)
+18 - cons.conf.idx: consumer confidence index - monthly indicator (numeric)
+19 - euribor3m: euribor 3 month rate - daily indicator (numeric)
+20 - nr.employed: number of employees - quarterly indicator (numeric)
+
+Output variable (desired target):
+21 - y - has the client subscribed a term deposit? (binary: 'yes','no')
+
+
+```{r}
+## Initialization and data load 
 library(knitr)
 library(pander)
 library(tidyverse)
@@ -29,75 +88,65 @@ library(kableExtra)
 library(lubridate)
 library(stringr)
 library(sjPlot) 
-
-
-bank_addl  = read.csv(file.choose(),header = TRUE, sep = ';')
-
-glimpse(bank_addl)
-
-#install.packages("inspectdf")
+library(gmodels)
 library(inspectdf)
+#install.packages("inspectdf")
 
 
-# Inspect Categorical Levels
-bank_ins_cat=inspect_cat(bank_addl)
+Bank_mrkt_data  = read.csv(file.choose(),header = TRUE, sep = ';')
+```
+
+```{r}
+dim(Bank_mrkt_data)
+```
+dataset 41188 rows and 21 columns
+
+
+```{r}
+glimpse(Bank_mrkt_data)
+
+```
+First 20 variables are potential predictors and 21st variable 'y' is the response variable
+
+```{r}
+## Checking dependent variable
+
+prop.table(table(Bank_mrkt_data$y))
+
+##NOTES:
+# An implementation of a cross-tabulation function with output similar to S-Plus crosstabs() and SAS Proc Freq (or SPSS format) with Chi-square, Fisher and McNemar tests of the independence of all table factors
+
+CrossTable(Bank_mrkt_data$y)
+
+```
+Resampling is required as it is imbalance two level categorical variable.
+
+```{r}
+Bank_mrkt_data %>% summarise_all(list(~sum(. == "unknown"))) %>% gather(key = "variable", value = "nr_unknown") %>%   arrange(-nr_unknown)
+
+
+```
+default has maximum number of unknowns, next comes education, housing, loan, job and marital. Totally six predictors has unknowns. As unknown observations are huge, before we decide them to delete we will find the significant predictors.
+
+
+# EDA and Feature selection
+
+##Categorical variables and their categories distribution
+
+```{r}
+## Inspect Categorical Levels
+bank_ins_cat=inspect_cat(Bank_mrkt_data)
 
 bank_ins_cat
 bank_ins_cat$levels
 show_plot(bank_ins_cat)
-
-# Inspect Contious variables
-head(bank_addl)
-bank_ins_con = inspect_num(bank_addl)
-
-# Checking dependent variabe. resampling is required. imbalanced...
-prop.table(table(bank_addl$y))
-
-## Inspect previous. Clients contacted previously
-table(bank_addl$previous)
-
-##tally is a convenient wrapper for summarise that will either call n or sum(n) depending on whether you're tallying for the first time, or #re-tallying. count() is similar, but also does the group_by for you.
-bank_addl %>% group_by(pdays) %>% tally() %>% arrange(desc(n)) %>% head()
+```
 
 
-
-# Find Correlation between prevous and pdays
-cor(bank_addl$previous, bank_addl$pdays)  ## Note these are correlated. we may drop pdays
-
-
-# correlaion between previous and response y. There is relation here.
-ggplot(bank_addl %>% group_by(previous, y) %>%  tally(), 
-       aes(previous, n, fill = y)) +
-      geom_col() +
-      theme_bw()
-
-# As Andrew found duration is biased
-
-ggplot(bank_addl %>% group_by(duration, y) %>%  tally(), 
-       aes(duration, n, fill = y)) +
-      geom_col() +
-      theme_bw()
-
-ggplot(bank_addl, aes(duration, fill = y)) +
-  geom_density(alpha = 0.5) +
-  theme_bw()
-### remove duration
-
-
-## Compare contious variables 
-cor_numericVal = inspect_cor(bank_addl)
-show_plot(cor_numericVal)
-
-
-cor_numericVal1 <- select_if(bank_addl, is.numeric) %>% cor()
-corrplot(cor_numericVal1, method = "number")
-
-corrplot(cor_numericVal1, method = "square",  tl.srt = 50, tl.col = "black", tl.cex = 0.6, title = "Correlation of Variables", mar=c(0,0,1,0))
-
-
-
+##Categorical variables and their categories distribution by RESPONSE 'y' -  !!IMPORTANT
+```{r}
 # select categorical variables
-categorical_variables = bank_addl %>% select_if(is.factor) %>% names()
+categorical_variables = Bank_mrkt_data %>% select_if(is.factor) %>% names()
 
 
 # remove the response
@@ -106,23 +155,371 @@ categorical_variables <- categorical_variables[-response_ind]
 
 # plot categorical variables
 for (i in categorical_variables) {
-  print(i)
-  print(bank_addl[i])
-   print(sjt.xtab(bank_addl$y,bank_addl[i]))
-  print(
-    sjp.xtab(bank_addl$y,
-         bank_addl[i],
-         margin = "row",
-         bar.pos = "stack",
-         axis.titles = "y",
-         legend.title = i)
-  )
- 
+
+print(i)
+  CrossTable(Bank_mrkt_data[, i], Bank_mrkt_data[,"y"],
+             prop.r = T,
+             prop.c = F,
+             prop.t = F,
+             prop.chisq = F,
+             dnn = c(i, "y"))
+
+  
 }
 
 
+```
+#education
+Looks like there is positive correlation between the number of years of education and the odds to subscribe to a term deposit.
+[1] "education"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+                    | y 
+          education |        no |       yes | Row Total | 
+--------------------|-----------|-----------|-----------|
+           basic.4y |      3748 |       428 |      4176 | 
+                    |     0.898 |     0.102 |     0.101 | 
+--------------------|-----------|-----------|-----------|
+           basic.6y |      2104 |       188 |      2292 | 
+                    |     0.918 |     0.082 |     0.056 | 
+--------------------|-----------|-----------|-----------|
+           basic.9y |      5572 |       473 |      6045 | 
+                    |     0.922 |     0.078 |     0.147 | 
+--------------------|-----------|-----------|-----------|
+        high.school |      8484 |      1031 |      9515 | 
+                    |     0.892 |     0.108 |     0.231 | 
+--------------------|-----------|-----------|-----------|
+         illiterate |        14 |         4 |        18 | 
+                    |     0.778 |     0.222 |     0.000 | 
+--------------------|-----------|-----------|-----------|
+professional.course |      4648 |       595 |      5243 | 
+                    |     0.887 |     0.113 |     0.127 | 
+--------------------|-----------|-----------|-----------|
+  university.degree |     10498 |      1670 |     12168 | 
+                    |     0.863 |     0.137 |     0.295 | 
+--------------------|-----------|-----------|-----------|
+            unknown |      1480 |       251 |      1731 | 
+                    |     0.855 |     0.145 |     0.042 | 
+--------------------|-----------|-----------|-----------|
+       Column Total |     36548 |      4640 |     41188 | 
+--------------------|-----------|-----------|-----------|
 
 
+# default 
+This is not useful predictor as no one wants to mention that they have defaulted :)
+[1] "default"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+     default |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+          no |     28391 |      4197 |     32588 | 
+             |     0.871 |     0.129 |     0.791 | 
+-------------|-----------|-----------|-----------|
+     unknown |      8154 |       443 |      8597 | 
+             |     0.948 |     0.052 |     0.209 | 
+-------------|-----------|-----------|-----------|
+         yes |         3 |         0 |         3 | 
+             |     1.000 |     0.000 |     0.000 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+
+#housing 
+yes and no are almost evenly distributed. We need to do further investigation to take this predictor
+
+[1] "housing"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+     housing |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+          no |     16596 |      2026 |     18622 | 
+             |     0.891 |     0.109 |     0.452 | 
+-------------|-----------|-----------|-----------|
+     unknown |       883 |       107 |       990 | 
+             |     0.892 |     0.108 |     0.024 | 
+-------------|-----------|-----------|-----------|
+         yes |     19069 |      2507 |     21576 | 
+             |     0.884 |     0.116 |     0.524 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+
+
+#loan 
+same as housing yes and no are almost evenly distributed. We need to do further investigation to take this predictor
+[1] "loan"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+        loan |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+          no |     30100 |      3850 |     33950 | 
+             |     0.887 |     0.113 |     0.824 | 
+-------------|-----------|-----------|-----------|
+     unknown |       883 |       107 |       990 | 
+             |     0.892 |     0.108 |     0.024 | 
+-------------|-----------|-----------|-----------|
+         yes |      5565 |       683 |      6248 | 
+             |     0.891 |     0.109 |     0.152 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+
+
+#contact
+his feature is really interesting, 14.7% of cellular responders subscribed to a term deposit while only 5.2% of telephone responders did.
+
+[1] "contact"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+     contact |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+    cellular |     22291 |      3853 |     26144 | 
+             |     0.853 |     0.147 |     0.635 | 
+-------------|-----------|-----------|-----------|
+   telephone |     14257 |       787 |     15044 | 
+             |     0.948 |     0.052 |     0.365 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+
+#month
+dec is very interesting people may be in high sprits. Success rate is very high. Need to do further investigation o this predictor
+ 
+[1] "month"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+       month |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+         apr |      2093 |       539 |      2632 | 
+             |     0.795 |     0.205 |     0.064 | 
+-------------|-----------|-----------|-----------|
+         aug |      5523 |       655 |      6178 | 
+             |     0.894 |     0.106 |     0.150 | 
+-------------|-----------|-----------|-----------|
+         dec |        93 |        89 |       182 | 
+             |     0.511 |     0.489 |     0.004 | 
+-------------|-----------|-----------|-----------|
+         jul |      6525 |       649 |      7174 | 
+             |     0.910 |     0.090 |     0.174 | 
+-------------|-----------|-----------|-----------|
+         jun |      4759 |       559 |      5318 | 
+             |     0.895 |     0.105 |     0.129 | 
+-------------|-----------|-----------|-----------|
+         mar |       270 |       276 |       546 | 
+             |     0.495 |     0.505 |     0.013 | 
+-------------|-----------|-----------|-----------|
+         may |     12883 |       886 |     13769 | 
+             |     0.936 |     0.064 |     0.334 | 
+-------------|-----------|-----------|-----------|
+         nov |      3685 |       416 |      4101 | 
+             |     0.899 |     0.101 |     0.100 | 
+-------------|-----------|-----------|-----------|
+         oct |       403 |       315 |       718 | 
+             |     0.561 |     0.439 |     0.017 | 
+-------------|-----------|-----------|-----------|
+         sep |       314 |       256 |       570 | 
+             |     0.551 |     0.449 |     0.014 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+
+
+#day_of_week
+No weekends calls. But remaining 5 days are almost evenly distributed. Is it important?
+
+
+[1] "day_of_week"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+ day_of_week |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+         fri |      6981 |       846 |      7827 | 
+             |     0.892 |     0.108 |     0.190 | 
+-------------|-----------|-----------|-----------|
+         mon |      7667 |       847 |      8514 | 
+             |     0.901 |     0.099 |     0.207 | 
+-------------|-----------|-----------|-----------|
+         thu |      7578 |      1045 |      8623 | 
+             |     0.879 |     0.121 |     0.209 | 
+-------------|-----------|-----------|-----------|
+         tue |      7137 |       953 |      8090 | 
+             |     0.882 |     0.118 |     0.196 | 
+-------------|-----------|-----------|-----------|
+         wed |      7185 |       949 |      8134 | 
+             |     0.883 |     0.117 |     0.197 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+
+
+#poutcome
+interesting. prevously successful is more successful next time.
+
+[1] "poutcome"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+    poutcome |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+     failure |      3647 |       605 |      4252 | 
+             |     0.858 |     0.142 |     0.103 | 
+-------------|-----------|-----------|-----------|
+ nonexistent |     32422 |      3141 |     35563 | 
+             |     0.912 |     0.088 |     0.863 | 
+-------------|-----------|-----------|-----------|
+     success |       479 |       894 |      1373 | 
+             |     0.349 |     0.651 |     0.033 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+```{r}
+# Inspect Contious variables
+head(Bank_mrkt_data)
+bank_ins_con = inspect_num(Bank_mrkt_data)
+
+
+
+
+## Inspect previous. Clients contacted previously
+table(Bank_mrkt_data$previous)
+
+##tally is a convenient wrapper for summarise that will either call n or sum(n) depending on whether you're tallying for the first time, or #re-tallying. count() is similar, but also does the group_by for you.
+Bank_mrkt_data %>% group_by(pdays) %>% tally() %>% arrange(desc(n)) %>% head()
+
+
+
+# Find Correlation between prevous and pdays
+cor(Bank_mrkt_data$previous, Bank_mrkt_data$pdays)  ## Note these are correlated. we may drop pdays
+```
+#pdays an previous
+We will consider either pdays or previous
+
+
+##Continious variables and covariance
+
+```{r}
+
+# correlaion between previous and response y. There is relation here.
+ggplot(Bank_mrkt_data %>% group_by(previous, y) %>%  tally(), 
+       aes(previous, n, fill = y)) +
+      geom_col() +
+      theme_bw()
+
+# As Andrew found duration is biased
+
+ggplot(Bank_mrkt_data %>% group_by(duration, y) %>%  tally(), 
+       aes(duration, n, fill = y)) +
+      geom_col() +
+      theme_bw()
+
+ggplot(Bank_mrkt_data, aes(duration, fill = y)) +
+  geom_density(alpha = 0.5) +
+  theme_bw()
+### remove duration
+```
+
+
+```{r}
+
+## Compare contious variables 
+cor_numericVal = inspect_cor(Bank_mrkt_data)
+
+cor_numericVal1 <- select_if(Bank_mrkt_data, is.numeric) %>% cor()
+corrplot(cor_numericVal1, method = "number")
+
+corrplot(cor_numericVal1, method = "square",  tl.srt = 50, tl.col = "black", tl.cex = 0.6, title = "Correlation of Variables", mar=c(0,0,1,0))
+ corrplot(cor_numericVal1, method = "number",
+           type = "upper",
+           tl.cex = 0.8,
+           tl.srt = 45,
+           tl.col = "black")
 
 
 ```
+## Note I will furter continue analysis on corelated features 

@@ -36,6 +36,17 @@ summary(Bank_mrkt_data)
 dim(Bank_mrkt_data %>% filter(grepl("unknown", Bank_mrkt_data$education)==TRUE))[1]
 dim(Bank_mrkt_data %>% filter(grepl("unknown", Bank_mrkt_data$job)==TRUE))[1]
 
+#filtering out unknown responses  for unkowns 
+
+Bank_mrkt_data = Bank_mrkt_data %>% filter((Bank_mrkt_data$education != "unknown") & 
+                                             (Bank_mrkt_data$job != "unknown") & 
+                                             (Bank_mrkt_data$marital != "unkown") & 
+                                             (Bank_mrkt_data$default != "unkown") &
+                                             (Bank_mrkt_data$housing != "unkown") &
+                                             (Bank_mrkt_data$loan != "unkown") &
+                                             (Bank_mrkt_data$contact != "unkown") &
+                                             (Bank_mrkt_data$loan != "unkown"))
+
 
 
 
@@ -179,6 +190,8 @@ Bank_mrkt_data_partition_test = Bank_mrkt_data_dwn_sample[-Bank_mrkt_data_partit
 
 
 
+
+
 colname_vec = str_replace_all(toString(names(Bank_mrkt_data)[1:20]),"\\,", "\\ +")
 
 #lda_analysis = lda(Class ~ age + job + marital + education + default + housing + loan + contact + month + day_of_week + duration + campaign + pdays + previous + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train)
@@ -225,7 +238,7 @@ ME
 #Calculating overall accuracy
 1-ME
 
-lda_analysis = lda(Class ~ age +  duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train, prior =  c(.90,.10))
+lda_analysis = lda(Class ~ age +  duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train, prior =  c(.89,.11))
 
 pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
 Truth = Bank_mrkt_data_partition_test$Class
@@ -236,6 +249,22 @@ ME = (x[2,1]+x[1,2])/sum(x)
 ME
 #Calculating overall accuracy
 1-ME
+
+#PCA outputs for LDA comparison : model does not perform as well as original LDA with highest accuracy of 84% 
+
+lda_analysis = lda(Class ~ age + duration, data = Bank_mrkt_data_partition_train)
+
+pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
+Truth = Bank_mrkt_data_partition_test$Class
+x = table(pred,Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+
 
 #qda analysis 
 qda_analysis = qda(Class ~ age +  duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train)
@@ -319,5 +348,13 @@ ggplot(data = pc.scores, aes(x = PC2, y = PC3 )) + geom_point(aes(col=pc.scores$
 
 
 ggplot(data = pc.scores, aes(x = PC3, y = PC4 )) + geom_point(aes(col=pc.scores$Class), size = 1) + ggtitle("PCA of Deposits ")
+
+```
+
+Logistic Regression
+
+```{r}
+logr<-glm(Class ~ age + job + marital + education + default + housing + loan + contact + month + day_of_week + duration + campaign + pdays + previous + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit') )
+
 
 ```

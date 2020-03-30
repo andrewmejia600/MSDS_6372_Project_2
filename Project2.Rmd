@@ -342,12 +342,12 @@ pc.scores = data.frame(pc.scores)
 #pc.scores$Class = Bank_mrkt_data_partition_train$Class
 pc.scores$Class = Bank_mrkt_data$y
 
-ggplot(data = pc.scores, aes(x = PC1, y = PC2 )) + geom_point(aes(col=pc.scores$Class), size = 1) + ggtitle("PCA of Deposits ")
+ggplot(data = pc.scores, aes(x = PC1, y = PC2 )) + geom_point(aes(col=pc.scores$Class), size = 1, shape = '*') + ggtitle("PCA of Deposits ")
 
-ggplot(data = pc.scores, aes(x = PC2, y = PC3 )) + geom_point(aes(col=pc.scores$Class), size = 1) + ggtitle("PCA of Deposits ")
+ggplot(data = pc.scores, aes(x = PC2, y = PC3 )) + geom_point(aes(col=pc.scores$Class), size = 1, shape = '*') + ggtitle("PCA of Deposits ")
 
 
-ggplot(data = pc.scores, aes(x = PC3, y = PC4 )) + geom_point(aes(col=pc.scores$Class), size = 1) + ggtitle("PCA of Deposits ")
+ggplot(data = pc.scores, aes(x = PC3, y = PC4 )) + geom_point(aes(col=pc.scores$Class), size = 1, shape = '*') + ggtitle("PCA of Deposits ")
 
 ```
 

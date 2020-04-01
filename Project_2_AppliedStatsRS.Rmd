@@ -90,6 +90,7 @@ library(stringr)
 library(sjPlot) 
 library(gmodels)
 library(inspectdf)
+library(ggmosaic)
 #install.packages("inspectdf")
 
 
@@ -166,6 +167,108 @@ print(i)
 
   
 }
+
+#Education
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, education), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Education") +
+   ylab("y")
+
+
+#default
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, default), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Default") +
+   ylab("y")
+
+#housing
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, housing), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Housing") +
+   ylab("y")
+
+
+#loan
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, loan), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Loan") +
+   ylab("y")
+
+#contact
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, contact), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Contact") +
+   ylab("y")
+
+#month
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, month), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Month") +
+   ylab("y")
+
+
+#day_of_week
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, day_of_week), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Day of Week") +
+  ylab("y")
+
+
+#poutcome
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, poutcome), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Poutcome") +
+  ylab("y")
+
+
 
 
 ```
@@ -522,4 +625,4 @@ corrplot(cor_numericVal1, method = "square",  tl.srt = 50, tl.col = "black", tl.
 
 
 ```
-## Note I will furter continue analysis on corelated features 
+## Note I will furter continue analysis on corelated 

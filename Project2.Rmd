@@ -114,6 +114,18 @@ Bank_mrkt_data %>% ggplot(aes(x = nr.employed, y = emp.var.rate, color = y)) + g
 
 Bank_mrkt_data %>% ggplot(aes(x =euribor3m , y = nr.employed, color = y)) + geom_point() + geom_jitter()
 
+
+#Looking for complex interactions marital and age seem to have some interaction 
+
+Bank_mrkt_data %>% ggplot(aes(x = education, y = age , color = y)) + geom_boxplot()
+
+Bank_mrkt_data %>% ggplot(aes(x = job, y = age , color = y)) + geom_boxplot()
+
+Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_boxplot()
+
+
+Bank_mrkt_data %>% ggplot(aes(x = contact, y = duration , color = y)) + geom_boxplot()
+
 #3d Graphs of duration 
 
 fig = plot_ly(Bank_mrkt_data, x = Bank_mrkt_data$duration, y = Bank_mrkt_data$age, z = Bank_mrkt_data$y, color = Bank_mrkt_data$y, colors = c('#BF382A', '#0C4B8E'))
@@ -351,10 +363,74 @@ ggplot(data = pc.scores, aes(x = PC3, y = PC4 )) + geom_point(aes(col=pc.scores$
 
 ```
 
-Logistic Regression
+Logistic Regression Full list of variables -- HL GOF test pvalue < 2.2e-16 not a good fit 
 
 ```{r}
-logr<-glm(Class ~ age + job + marital + education + default + housing + loan + contact + month + day_of_week + duration + campaign + pdays + previous + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit') )
+
+library(ResourceSelection)
+library(car)
+
+
+
+main.logr<-glm(Class ~ age + job + marital + education + default + housing + loan + contact + month + day_of_week + duration + campaign + pdays + previous + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit') )
+
+summary(main.logr)
+exp(cbind("Odds ratio" = coef(main.logr), confint.default(main.logr, level = 0.95)))
+#vif(logr)
+
+plot(main.logr, pch = 16)
+
+
+hoslem.test(main.logr$y, fitted(main.logr), g=10)
+
+```
+
+The Leverage plot looks better here then compared to original model with all predictors  and HSLM test proves better fitting model --- Possibly start thinking of duration as a categorical variable 
+```{r}
+
+logr<-glm(Class ~ age + job + education + contact + campaign + previous ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit') )
+
+summary(logr)
+exp(cbind("Odds ratio" = coef(logr), confint.default(logr, level = 0.95)))
+#vif(logr)
+
+plot(logr)
+
+
+
+hoslem.test(logr$y, fitted(logr), g=10)
+
 
 
 ```
+
+
+#Origianl complex model 
+```{r}
+
+logr.model.complex = glm(Class ~ age + job + education + contact + age:contact + age:education ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+step(main.logr,
+     scope = list(upper=logr.model.complex),
+     direction="forward",
+     test="Chisq",
+     data=Bank_mrkt_data_partition_train)
+hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
+
+
+```
+
+#looks more promising less outliers with leverage and passes GOF test, looking at earlier box plot of marital and age 
+```{r}
+
+logr.model.complex = glm(Class ~ age + job + education + contact + marital + age:marital ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+step(main.logr,
+     scope = list(upper=logr.model.complex),
+     direction="forward",
+     test="Chisq",
+     data=Bank_mrkt_data_partition_train)
+hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
+
+plot(logr.model.complex)
+
+```
+

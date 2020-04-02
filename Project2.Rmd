@@ -20,6 +20,8 @@ library(GGally)
 library(dplyr)
 library(caret)
 library(plotly)
+library(ResourceSelection)
+library(car)
 
 Bank_mrkt_data  = read.csv(file.choose(),header = TRUE, sep = ';')
 
@@ -363,7 +365,7 @@ ggplot(data = pc.scores, aes(x = PC3, y = PC4 )) + geom_point(aes(col=pc.scores$
 
 ```
 
-Logistic Regression Full list of variables -- HL GOF test pvalue < 2.2e-16 not a good fit 
+#Logistic Regression Full list of variables -- HL GOF test pvalue < 2.2e-16 not a good fit 
 
 ```{r}
 
@@ -385,7 +387,7 @@ hoslem.test(main.logr$y, fitted(main.logr), g=10)
 
 ```
 
-The Leverage plot looks better here then compared to original model with all predictors  and HSLM test proves better fitting model --- Possibly start thinking of duration as a categorical variable 
+#The Leverage plot looks better here then compared to original model with all predictors  and HSLM test proves better fitting model --- Possibly start thinking of duration as a categorical variable 
 ```{r}
 
 logr<-glm(Class ~ age + job + education + contact + campaign + previous ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit') )
@@ -408,8 +410,11 @@ hoslem.test(logr$y, fitted(logr), g=10)
 #Origianl complex model 
 ```{r}
 
+main.logr_l = glm(Class ~ age + job + education + contact,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+
+
 logr.model.complex = glm(Class ~ age + job + education + contact + age:contact + age:education ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
-step(main.logr,
+step(main.logr_l,
      scope = list(upper=logr.model.complex),
      direction="forward",
      test="Chisq",
@@ -419,11 +424,13 @@ hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
 
 ```
 
-#looks more promising less outliers with leverage and passes GOF test, looking at earlier box plot of marital and age 
+#looks more promising less outliers with leverage and passes GOF test, looking at earlier box plot of marital and age and look at AIC 
 ```{r}
 
+main.logr_l_2 = glm(Class ~ age + job + education + contact + marital,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+
 logr.model.complex = glm(Class ~ age + job + education + contact + marital + age:marital ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
-step(main.logr,
+step(main.logr_l_2,
      scope = list(upper=logr.model.complex),
      direction="forward",
      test="Chisq",

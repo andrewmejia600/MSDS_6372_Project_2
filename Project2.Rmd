@@ -22,6 +22,12 @@ library(caret)
 library(plotly)
 library(ResourceSelection)
 library(car)
+library(ROCR)
+library(MASS)
+library(stringr)
+library(glmnet)
+library(bestglm)
+
 
 Bank_mrkt_data  = read.csv(file.choose(),header = TRUE, sep = ';')
 
@@ -186,8 +192,7 @@ fig5
 ```
 
 ```{r}
-library(MASS)
-library(stringr)
+
 
 #Test Train Splits 
 
@@ -202,6 +207,9 @@ Bank_mrkt_data_partition_idx = createDataPartition(Bank_mrkt_data_dwn_sample$Cla
 Bank_mrkt_data_partition_train = Bank_mrkt_data_dwn_sample[Bank_mrkt_data_partition_idx,]
 Bank_mrkt_data_partition_test = Bank_mrkt_data_dwn_sample[-Bank_mrkt_data_partition_idx,]
 
+#Removing Row Number Partitions indices 
+row.names(Bank_mrkt_data_partition_train) = NULL
+row.names(Bank_mrkt_data_partition_test) = NULL 
 
 
 
@@ -369,10 +377,6 @@ ggplot(data = pc.scores, aes(x = PC3, y = PC4 )) + geom_point(aes(col=pc.scores$
 
 ```{r}
 
-library(ResourceSelection)
-library(car)
-
-
 
 main.logr<-glm(Class ~ age + job + marital + education + default + housing + loan + contact + month + day_of_week + duration + campaign + pdays + previous + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit') )
 
@@ -385,6 +389,21 @@ plot(main.logr, pch = 16)
 
 hoslem.test(main.logr$y, fitted(main.logr), g=10)
 
+pred = predict(main.logr, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
 ```
 
 #The Leverage plot looks better here then compared to original model with all predictors  and HSLM test proves better fitting model --- Possibly start thinking of duration as a categorical variable 
@@ -394,7 +413,7 @@ logr<-glm(Class ~ age + job + education + contact + campaign + previous ,data=Ba
 
 summary(logr)
 exp(cbind("Odds ratio" = coef(logr), confint.default(logr, level = 0.95)))
-#vif(logr)
+vif(logr)
 
 plot(logr)
 
@@ -402,9 +421,26 @@ plot(logr)
 
 hoslem.test(logr$y, fitted(logr), g=10)
 
+pred = predict(logr, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
 
 
 ```
+
+
 
 
 #Origianl complex model 
@@ -412,6 +448,31 @@ hoslem.test(logr$y, fitted(logr), g=10)
 
 main.logr_l = glm(Class ~ age + job + education + contact,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
 
+
+summary(main.logr_l)
+exp(cbind("Odds ratio" = coef(main.logr_l), confint.default(main.logr_l, level = 0.95)))
+vif(main.logr_l)
+
+plot(main.logr_l)
+
+
+hoslem.test(main.logr_l$y, fitted(main.logr_l), g=10)
+
+
+pred = predict(main.logr_l, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
 
 logr.model.complex = glm(Class ~ age + job + education + contact + age:contact + age:education ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
 step(main.logr_l,
@@ -421,6 +482,21 @@ step(main.logr_l,
      data=Bank_mrkt_data_partition_train)
 hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
 
+pred = predict(logr.model.complex, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
 
 ```
 
@@ -428,6 +504,25 @@ hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
 ```{r}
 
 main.logr_l_2 = glm(Class ~ age + job + education + contact + marital,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+
+plot(main.logr_l_2)
+
+pred = predict(main.logr_l_2, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+
 
 logr.model.complex = glm(Class ~ age + job + education + contact + marital + age:marital ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
 step(main.logr_l_2,
@@ -438,6 +533,62 @@ step(main.logr_l_2,
 hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
 
 plot(logr.model.complex)
+
+pred = predict(logr.model.complex, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+
+```
+#ROC Curves need to be made into GLMNET not ready yet 
+```{r}
+
+Bank_mrkt_data_partition_train_mat = as.matrix(Bank_mrkt_data_partition_train[-c("Class")])
+
+dat.train.x <- as.matrix(dat.train.x)
+library(glmnet)
+cvfit <- cv.glmnet(dat.train.x, dat.train.y, family = "binomial", type.measure = "class", nlambda = 1000)
+plot(cvfit)
+coef(cvfit, s = "lambda.min")
+
+#Get training set predictions...We know they are biased but lets create ROC's.
+#These are predicted probabilities from logistic model  exp(b)/(1+exp(b))
+fit.pred <- predict(cvfit, newx = dat.train.x, type = "response")
+
+#Compare the prediction to the real outcome
+head(fit.pred)
+head(dat.train.y)
+
+#Create ROC curves
+pred <- prediction(fit.pred[,1], dat.train.y)
+roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+auc.train <- performance(pred, measure = "auc")
+auc.train <- auc.train@y.values
+
+#Plot ROC
+plot(roc.perf)
+abline(a=0, b= 1) #Ref line indicating poor performance
+text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+
+
+#Get Validation Set I
+dat.val1 <- dat[which(dat$Set == "Validation I"),]
+dat.val1.x <- dat.val1[,c(6:ncol(dat))]
+dat.val1.x <- as.matrix(dat.val1.x)
+
+dat.val1.y <- dat.val1$Censor
+dat.val1.y <- as.factor(as.character(dat.val1.y))
 
 ```
 

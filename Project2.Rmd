@@ -551,10 +551,88 @@ ME
 
 
 ```
-#ROC Curves need to be made into GLMNET not ready yet 
+
+# Good overall prediction score especially when looking at ROC curves not much gain in complex models, pretty good accuracy in truth tables for main model-- not a good fit to data -- Removing outliers did not yield much gain in model performance. 
 ```{r}
 
-Bank_mrkt_data_partition_formula = as.formula(Class ~ age + job + education + contact + marital)
+main.logr_l_3 = glm(Class ~ duration + job + education + month,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+
+main.logr_l_3$aic
+
+hoslem.test(main.logr_l_3$y, fitted(logr.model.complex), g=10)
+plot(main.logr_l_3)
+
+pred = predict(main.logr_l_3, newdata = Bank_mrkt_data_partition_train, type="response")
+
+Bank_mrkt_data_partition_train['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_train$Class
+Predt = Bank_mrkt_data_partition_train$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+
+#validation against test train split
+  
+
+pred = predict(main.logr_l_3, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+  
+
+
+logr.model.complex = glm(Class ~ duration + job + education + month + duration:education + duration:job ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+step(main.logr_l_3,
+     scope = list(upper=logr.model.complex),
+     direction="forward",
+     test="Chisq",
+     data=Bank_mrkt_data_partition_train)
+hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
+
+plot(logr.model.complex)
+
+pred = predict(logr.model.complex, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+
+```
+
+
+
+#ROC Curves need to be in GLMNET inputs matrices 
+```{r}
+
+#Bank_mrkt_data_partition_formula = as.formula(Class ~ age + job + education + contact + marital)
+Bank_mrkt_data_partition_formula = as.formula(Class ~ duration + job + education + month)
 Bank_mrkt_data_partition_train_mat.x = model.matrix(Bank_mrkt_data_partition_formula, Bank_mrkt_data_partition_train)
 Bank_mrkt_data_partition_train_mat.y = as.matrix(Bank_mrkt_data_partition_train[,21], ncol=1) 
 

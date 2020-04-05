@@ -554,27 +554,32 @@ ME
 #ROC Curves need to be made into GLMNET not ready yet 
 ```{r}
 
-Bank_mrkt_data_partition_train_mat = as.matrix(Bank_mrkt_data_partition_train[-c("Class")])
+Bank_mrkt_data_partition_formula = as.formula(Class ~ age + job + education + contact + marital)
+Bank_mrkt_data_partition_train_mat.x = model.matrix(Bank_mrkt_data_partition_formula, Bank_mrkt_data_partition_train)
+Bank_mrkt_data_partition_train_mat.y = as.matrix(Bank_mrkt_data_partition_train[,21], ncol=1) 
 
-dat.train.x <- as.matrix(dat.train.x)
-library(glmnet)
-cvfit <- cv.glmnet(dat.train.x, dat.train.y, family = "binomial", type.measure = "class", nlambda = 1000)
+Bank_mrkt_data_partition_test_mat.x = model.matrix(Bank_mrkt_data_partition_formula, Bank_mrkt_data_partition_test)
+Bank_mrkt_data_partition_test_mat.y = as.matrix(Bank_mrkt_data_partition_test[,21], ncol=1) 
+
+
+log_glmnet = glmnet(Bank_mrkt_data_partition_train_mat.x, Bank_mrkt_data_partition_train_mat.y, family = "binomial")
+
+plot(log_glmnet)
+
+coef(log_glmnet)
+
+cvfit =  cv.glmnet(Bank_mrkt_data_partition_train_mat.x, Bank_mrkt_data_partition_train_mat.y, family = "binomial", type.measure = "class", nlambda = 1000)
+
 plot(cvfit)
 coef(cvfit, s = "lambda.min")
 
-#Get training set predictions...We know they are biased but lets create ROC's.
-#These are predicted probabilities from logistic model  exp(b)/(1+exp(b))
-fit.pred <- predict(cvfit, newx = dat.train.x, type = "response")
 
-#Compare the prediction to the real outcome
-head(fit.pred)
-head(dat.train.y)
+fit.pred = predict(cvfit, newx =  Bank_mrkt_data_partition_train_mat.x, type = "response")
 
-#Create ROC curves
-pred <- prediction(fit.pred[,1], dat.train.y)
+pred  = prediction(fit.pred[,1], Bank_mrkt_data_partition_train_mat.y)
 roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
-auc.train <- performance(pred, measure = "auc")
-auc.train <- auc.train@y.values
+auc.train = performance(pred, measure = "auc")
+auc.train =  auc.train@y.values
 
 #Plot ROC
 plot(roc.perf)
@@ -582,13 +587,20 @@ abline(a=0, b= 1) #Ref line indicating poor performance
 text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
 
 
-#Get Validation Set I
-dat.val1 <- dat[which(dat$Set == "Validation I"),]
-dat.val1.x <- dat.val1[,c(6:ncol(dat))]
-dat.val1.x <- as.matrix(dat.val1.x)
 
-dat.val1.y <- dat.val1$Censor
-dat.val1.y <- as.factor(as.character(dat.val1.y))
+fit.pred.test = predict(cvfit, newx =  Bank_mrkt_data_partition_test_mat.x, type = "response")
+
+pred.test  = prediction(fit.pred.test[,1], Bank_mrkt_data_partition_test_mat.y)
+roc.perf = performance(pred.test, measure = "tpr", x.measure = "fpr")
+auc.train = performance(pred.test, measure = "auc")
+auc.train =  auc.train@y.values
+
+#Plot ROC
+plot(roc.perf)
+abline(a=0, b= 1) #Ref line indicating poor performance
+text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
 
 ```
+
+
 

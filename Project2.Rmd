@@ -197,12 +197,13 @@ fig5
 #Test Train Splits 
 
 #Down Sampling 
-set.seed(1234)
+set.seed(8474)
 Bank_mrkt_data_dwn_sample = downSample(Bank_mrkt_data[,1:20], Bank_mrkt_data[,21])
 
 #Controling Sampling by modifying the p in the create partition for creating the test train splits from the downsampled data for training. 
-set.seed(1234)
+set.seed(8474)
 Bank_mrkt_data_partition_idx = createDataPartition(Bank_mrkt_data_dwn_sample$Class, p=.5, list = FALSE, times = 1)
+
 
 Bank_mrkt_data_partition_train = Bank_mrkt_data_dwn_sample[Bank_mrkt_data_partition_idx,]
 Bank_mrkt_data_partition_test = Bank_mrkt_data_dwn_sample[-Bank_mrkt_data_partition_idx,]
@@ -497,6 +498,9 @@ ME
 #Calculating overall accuracy
 1-ME
 
+Senstvty = x[1]/(x[1] + x[2]) * 100 
+Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
+
 
 ```
 
@@ -526,6 +530,15 @@ ME
 #Calculating overall accuracy
 1-ME
 
+Senstvty = x[1]/(x[1] + x[2]) * 100 
+
+Senstvty
+
+Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
+
+Specivty
+
+
 ```
 
 # L3_is final model for prediction with highest accuracy and lowest AIC yields best AUC results 
@@ -537,7 +550,7 @@ main.logr_l_3 = glm(Class ~ duration + month + emp.var.rate + cons.price.idx + c
 
 main.logr_l_3$aic
 
-hoslem.test(main.logr_l_3$y, fitted(logr.model.complex), g=10)
+hoslem.test(main.logr_l_3$y, fitted(main.logr_l_3), g=10)
 plot(main.logr_l_3)
 
 pred = predict(main.logr_l_3, newdata = Bank_mrkt_data_partition_train, type="response")
@@ -554,6 +567,14 @@ ME = (x[2,1]+x[1,2])/sum(x)
 ME
 #Calculating overall accuracy
 1-ME
+
+Senstvty = x[1]/(x[1] + x[2]) * 100 
+
+Senstvty
+
+Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
+
+Specivty
 
 
 #validation against test train split
@@ -574,6 +595,16 @@ ME
 #Calculating overall accuracy
 1-ME
   
+Senstvty = x[1]/(x[1] + x[2]) * 100 
+
+Senstvty
+
+Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
+
+Specivty
+
+
+
 
 
 logr.model.complex = glm(Class ~ duration + month + emp.var.rate + cons.price.idx + contact + poutcome + campaign + euribor3m + cons.conf.idx + job + education + duration:education + duration:job ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
@@ -600,6 +631,14 @@ ME = (x[2,1]+x[1,2])/sum(x)
 ME
 #Calculating overall accuracy
 1-ME
+
+Senstvty = x[1]/(x[1] + x[2]) * 100 
+
+Senstvty
+
+Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
+
+Specivty
 
 
 ```

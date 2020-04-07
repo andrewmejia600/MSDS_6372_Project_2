@@ -91,11 +91,28 @@ library(sjPlot)
 library(gmodels)
 library(inspectdf)
 library(ggmosaic)
+library(cowplot)
+
+#install.packages("ResourceSelection")
+library(ResourceSelection)
 #install.packages("inspectdf")
 
 
 Bank_mrkt_data  = read.csv(file.choose(),header = TRUE, sep = ';')
 ```
+#Common plot functions
+```{r, echo=TRUE}
+
+# Defining Plot Function
+
+catplot <- function(df, x,y){
+  ggplot(data = df, aes_string(x = x, fill = y)) + 
+    geom_bar(position = "fill", alpha = 0.9) + 
+    coord_flip()
+}
+
+```
+
 
 ```{r}
 dim(Bank_mrkt_data)
@@ -123,6 +140,7 @@ CrossTable(Bank_mrkt_data$y)
 Resampling is required as it is imbalance two level categorical variable.
 
 ```{r}
+
 Bank_mrkt_data %>% summarise_all(list(~sum(. == "unknown"))) %>% gather(key = "variable", value = "nr_unknown") %>%   arrange(-nr_unknown)
 
 
@@ -154,6 +172,7 @@ categorical_variables = Bank_mrkt_data %>% select_if(is.factor) %>% names()
 response_ind <- match('y', categorical_variables)
 categorical_variables <- categorical_variables[-response_ind]
 
+
 # plot categorical variables
 for (i in categorical_variables) {
 
@@ -167,6 +186,14 @@ print(i)
 
   
 }
+
+
+
+# Lapply on all xnames values and assing to list object
+catplot.list1 <-lapply(categorical_variables, function(x) catplot(Bank_mrkt_data %>% keep(is.factor) ,x, "y"))
+# output plot grid
+library(cowplot)
+cowplot::plot_grid(plotlist = catplot.list1)
 
 #Education
 Bank_mrkt_data %>% 
@@ -272,6 +299,113 @@ Bank_mrkt_data %>%
 
 
 ```
+#marital
+
+[1] "marital"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  40858 
+
+ 
+             | y 
+     marital |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+    divorced |      4126 |       473 |      4599 | 
+             |     0.897 |     0.103 |     0.113 | 
+-------------|-----------|-----------|-----------|
+     married |     22178 |      2516 |     24694 | 
+             |     0.898 |     0.102 |     0.604 | 
+-------------|-----------|-----------|-----------|
+      single |      9889 |      1605 |     11494 | 
+             |     0.860 |     0.140 |     0.281 | 
+-------------|-----------|-----------|-----------|
+     unknown |        62 |         9 |        71 | 
+             |     0.873 |     0.127 |     0.002 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36255 |      4603 |     40858 | 
+-------------|-----------|-----------|-----------|
+
+remove rows with "unknown" as value for this variable.
+
+```{r}
+bank_data = bank_data %>% 
+  filter(marital != "unknown")
+```
+
+
+#job
+
+[1] "job"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+              | y 
+          job |        no |       yes | Row Total | 
+--------------|-----------|-----------|-----------|
+       admin. |      9070 |      1352 |     10422 | 
+              |     0.870 |     0.130 |     0.253 | 
+--------------|-----------|-----------|-----------|
+  blue-collar |      8616 |       638 |      9254 | 
+              |     0.931 |     0.069 |     0.225 | 
+--------------|-----------|-----------|-----------|
+ entrepreneur |      1332 |       124 |      1456 | 
+              |     0.915 |     0.085 |     0.035 | 
+--------------|-----------|-----------|-----------|
+    housemaid |       954 |       106 |      1060 | 
+              |     0.900 |     0.100 |     0.026 | 
+--------------|-----------|-----------|-----------|
+   management |      2596 |       328 |      2924 | 
+              |     0.888 |     0.112 |     0.071 | 
+--------------|-----------|-----------|-----------|
+      retired |      1286 |       434 |      1720 | 
+              |     0.748 |     0.252 |     0.042 | 
+--------------|-----------|-----------|-----------|
+self-employed |      1272 |       149 |      1421 | 
+              |     0.895 |     0.105 |     0.035 | 
+--------------|-----------|-----------|-----------|
+     services |      3646 |       323 |      3969 | 
+              |     0.919 |     0.081 |     0.096 | 
+--------------|-----------|-----------|-----------|
+      student |       600 |       275 |       875 | 
+              |     0.686 |     0.314 |     0.021 | 
+--------------|-----------|-----------|-----------|
+   technician |      6013 |       730 |      6743 | 
+              |     0.892 |     0.108 |     0.164 | 
+--------------|-----------|-----------|-----------|
+   unemployed |       870 |       144 |      1014 | 
+              |     0.858 |     0.142 |     0.025 | 
+--------------|-----------|-----------|-----------|
+      unknown |       293 |        37 |       330 | 
+              |     0.888 |     0.112 |     0.008 | 
+--------------|-----------|-----------|-----------|
+ Column Total |     36548 |      4640 |     41188 | 
+--------------|-----------|-----------|-----------|
+
+
+The "unknown" level doesn't show any important information and should be discarded from the data. We'll remove rows containing this value in the "job" column.
+
+```{r}
+Bank_mrkt_data = Bank_mrkt_data %>% 
+  filter(job != "unknown")
+```
+
+
 #education
 Looks like there is positive correlation between the number of years of education and the odds to subscribe to a term deposit.
 [1] "education"
@@ -317,6 +451,14 @@ professional.course |      4648 |       595 |      5243 |
        Column Total |     36548 |      4640 |     41188 | 
 --------------------|-----------|-----------|-----------|
 
+There are huge number of unknowns (1731 observations). We can't delete these records as there are 251 subscribers for term deposit. Instead of deleting, it is better to convert to either university.degree or high.school. Lets convert to university.degree.
+
+```{r}
+Bank_mrkt_data = Bank_mrkt_data %>% mutate(education = recode(education, "unknown" = "university.degree"))
+#Bank_mrkt_data = Bank_mrkt_data %>%  filter(education != "unknown")
+```
+
+
 
 # default 
 This is not useful predictor as no one wants to mention that they have defaulted :)
@@ -347,6 +489,12 @@ Total Observations in Table:  41188
 -------------|-----------|-----------|-----------|
 Column Total |     36548 |      4640 |     41188 | 
 -------------|-----------|-----------|-----------|
+
+default can't be used as only 3 answered yes for default. Lets drop this column
+
+```{r}
+Bank_mrkt_data = Bank_mrkt_data %>% select(-default)
+```
 
 #housing 
 yes and no are almost evenly distributed. We need to do further investigation to take this predictor
@@ -409,6 +557,14 @@ Total Observations in Table:  41188
 -------------|-----------|-----------|-----------|
 Column Total |     36548 |      4640 |     41188 | 
 -------------|-----------|-----------|-----------|
+
+Lets convert these unknowns to 'no'
+
+```{r}
+#Bank_mrkt_data = Bank_mrkt_data %>% mutate(loan = recode(loan, "unknown" = "no"))
+Bank_mrkt_data = Bank_mrkt_data %>% mutate(loan = recode(loan, "unknown" = "no"))
+```
+
 
 
 #contact
@@ -581,7 +737,21 @@ Bank_mrkt_data %>% group_by(pdays) %>% tally() %>% arrange(desc(n)) %>% head()
 cor(Bank_mrkt_data$previous, Bank_mrkt_data$pdays)  ## Note these are correlated. we may drop pdays
 ```
 #pdays an previous
-We will consider either pdays or previous
+We will consider either pdays or previous. 
+
+If we consider pdays, this is the number of days that passed by after the client was last contacted from a previous campaign. 999 value means the client wasn't previously contacted. It makes sence to make dummy variable. 0 means not contacted and 1 means contacted.
+
+
+Recontacting a client after a previous campaign seems to highly increase the odds of subscription.
+
+
+```{r}
+Bank_mrkt_data = Bank_mrkt_data %>% mutate(pdays_dummy = if_else(pdays == 999, "0", "1")) %>% select(-pdays) %>% select(-previous)
+```
+
+```{r}
+fun_crosstable(Bank_mrkt_data, "pdays_dummy", "y")
+```
 
 
 ##Continious variables and covariance
@@ -625,4 +795,129 @@ corrplot(cor_numericVal1, method = "square",  tl.srt = 50, tl.col = "black", tl.
 
 
 ```
-## Note I will furter continue analysis on corelated 
+
+
+
+```{r}
+set.seed(1234)
+
+ind = createDataPartition(Bank_mrkt_data$y,
+                          times = 1,
+                          p = 0.8,
+                          list = F)
+Bank_mrkt_data_train = Bank_mrkt_data[ind, ]
+Bank_mrkt_data_test = Bank_mrkt_data[-ind, ]
+```
+
+`bank_train` will be our training set while `bank_test` will be used to validate our models.
+
+Let's start out with logistic regressions, decision trees, random forests (through the `ranger` package), then boosting (Extreme GBM then Light GBM).
+
+
+
+## Logistic regression
+
+The first model is a logistic regression, with every remaining features.
+
+```{r}
+logistic_reg = glm(y ~ .,
+               data = Bank_mrkt_data_train,
+               family = "binomial")
+
+summary(logistic_reg)
+exp(cbind("Odds ratio" = coef(logistic_reg), confint.default(logistic_reg, level = 0.95)))
+#vif(logr)
+
+plot(logistic_reg, pch = 16)
+
+
+hoslem.test(logistic_reg$y, fitted(logistic_reg), g=10)
+```
+
+### Results
+
+```{r}
+summary(logistic_reg)
+```
+
+
+### Predicted scores
+
+Let's obtain the predicted scores for both datasets. The training scores are useful to evaluate how well did the training go and the validation scores (test scores) will be used to validate the model (cross-validation).
+
+```{r, message=F, warning=F}
+
+
+# creating classes according to score and cut
+fun_cut_predict = function(score, cut) {
+  # score: predicted scores
+  # cut: threshold for classification
+  
+  classes = score
+  classes[classes > cut] = 'yes'
+  classes[classes <= cut] = 'no'
+  classes = as.factor(classes)
+  
+  return(classes)  
+}
+
+logistic_train_score = predict(logistic_reg, newdata = Bank_mrkt_data_train,  type = "response")
+
+logistic_train_class = fun_cut_predict(logistic_train_score, 0.2)
+# matrix
+logistic_train_confm = confusionMatrix(logistic_train_class, Bank_mrkt_data_train$y, 
+                                       positive = "yes",
+                                       mode = "everything")
+logistic_train_confm
+
+logistic_test_score = predict(logistic_reg,newdata = Bank_mrkt_data_test,type = "response")
+
+
+logistic_test_class = fun_cut_predict(logistic_test_score, 0.2)
+# matrix
+logistic_test_confm = confusionMatrix(logistic_test_class, Bank_mrkt_data_test$y, 
+                                       positive = "yes",
+                                       mode = "everything")
+logistic_test_confm
+
+
+
+Bank_mrkt_data_test['Pred_Out'] = as.factor(ifelse(logistic_test_score>.50, "Yes", "No"))
+
+Actual_truth = Bank_mrkt_data_test$y
+Pred_truth = Bank_mrkt_data_test$Pred_Out
+
+c_table = table(Pred_truth, Actual_truth) # Creating a confusion matrix
+c_table
+#Missclassification Error
+MissClassification_Error = (c_table[2,1]+c_table[1,2])/sum(c_table)
+MissClassification_Error
+#Calculating overall accuracy
+1-MissClassification_Error
+```
+
+
+
+
+order the parameter significance
+```{r}
+ 
+  gg1 = varImp(logistic_reg) %>%  rownames_to_column() %>%    rename(variable = rowname) %>%  arrange(-Overall) %>% 
+    slice(1:floor(nrow(.))) %>% 
+    ggplot() +
+    aes(x = reorder(variable, Overall), weight = Overall, fill = -Overall) +
+    geom_bar() +
+    coord_flip() +
+    xlab("Variables") +
+    ylab("Importance") +
+    theme(legend.position = "none")
+  
+  imp_range = ggplot_build(gg1)[["layout"]][["panel_params"]][[1]][["x.range"]]
+  imp_gradient = scale_fill_gradient(limits = c(-imp_range[2], -imp_range[1]),
+                                     low = "#132B43", 
+                                     high = "#56B1F7")
+  gg1
+ 
+```
+
+ %>% select(-pdays)

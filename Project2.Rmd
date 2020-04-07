@@ -443,7 +443,7 @@ ME
 
 
 
-#Origianl complex model 
+#Original complex model 
 ```{r}
 
 main.logr_l = glm(Class ~ age + job + education + contact,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
@@ -500,12 +500,16 @@ ME
 
 ```
 
-#looks more promising less outliers with leverage and passes GOF test, looking at earlier box plot of marital and age and look at AIC 
+#Winning Base Model 
 ```{r}
 
-main.logr_l_2 = glm(Class ~ age + job + education + contact + marital,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+main.logr_l_2 = glm(Class ~ duration + cons.price.idx + contact + poutcome,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
 
 plot(main.logr_l_2)
+
+hoslem.test(main.logr_l_2$y, fitted(main.logr_l_2), g=10)
+
+main.logr_l_2$aic 
 
 pred = predict(main.logr_l_2, newdata = Bank_mrkt_data_partition_test, type="response")
 
@@ -522,40 +526,14 @@ ME
 #Calculating overall accuracy
 1-ME
 
-
-
-logr.model.complex = glm(Class ~ age + job + education + contact + marital + age:marital ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
-step(main.logr_l_2,
-     scope = list(upper=logr.model.complex),
-     direction="forward",
-     test="Chisq",
-     data=Bank_mrkt_data_partition_train)
-hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
-
-plot(logr.model.complex)
-
-pred = predict(logr.model.complex, newdata = Bank_mrkt_data_partition_test, type="response")
-
-Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
-
-Truth = Bank_mrkt_data_partition_test$Class
-Predt = Bank_mrkt_data_partition_test$Pred_Out
-
-x = table(Predt, Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
-
-
 ```
 
-# Good overall prediction score especially when looking at ROC curves not much gain in complex models, pretty good accuracy in truth tables for main model-- not a good fit to data -- Removing outliers did not yield much gain in model performance. 
+# L3_is final model for prediction with highest accuracy and lowest AIC yields best AUC results 
+#Good overall prediction score especially when looking at ROC curves not much gain in complex models, pretty good accuracy in truth tables for main model-- not a good fit to data -- Removing outliers did not yield much gain in model performance. 
 ```{r}
 
-main.logr_l_3 = glm(Class ~ duration + job + education + month,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+
+main.logr_l_3 = glm(Class ~ duration + month + emp.var.rate + cons.price.idx + contact + poutcome + campaign + euribor3m + cons.conf.idx + job + education ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
 
 main.logr_l_3$aic
 
@@ -598,7 +576,7 @@ ME
   
 
 
-logr.model.complex = glm(Class ~ duration + job + education + month + duration:education + duration:job ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+logr.model.complex = glm(Class ~ duration + month + emp.var.rate + cons.price.idx + contact + poutcome + campaign + euribor3m + cons.conf.idx + job + education + duration:education + duration:job ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
 step(main.logr_l_3,
      scope = list(upper=logr.model.complex),
      direction="forward",
@@ -630,9 +608,10 @@ ME
 
 #ROC Curves need to be in GLMNET inputs matrices 
 ```{r}
-
-#Bank_mrkt_data_partition_formula = as.formula(Class ~ age + job + education + contact + marital)
-Bank_mrkt_data_partition_formula = as.formula(Class ~ duration + job + education + month)
+#Base Model AUC results 
+Bank_mrkt_data_partition_formula = as.formula(Class ~ duration  + cons.price.idx + contact + poutcome)
+#Winning model AUC results 
+Bank_mrkt_data_partition_formula = as.formula(Class ~ duration + month + emp.var.rate + cons.price.idx + contact + poutcome + campaign + euribor3m + cons.conf.idx + job + education)
 Bank_mrkt_data_partition_train_mat.x = model.matrix(Bank_mrkt_data_partition_formula, Bank_mrkt_data_partition_train)
 Bank_mrkt_data_partition_train_mat.y = as.matrix(Bank_mrkt_data_partition_train[,21], ncol=1) 
 

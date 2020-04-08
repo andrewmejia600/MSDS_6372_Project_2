@@ -517,10 +517,12 @@ main.logr_l_2$aic
 
 pred = predict(main.logr_l_2, newdata = Bank_mrkt_data_partition_test, type="response")
 
-Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "no"))
 
 Truth = Bank_mrkt_data_partition_test$Class
 Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+confusionMatrix(table(Predt, Truth))
 
 x = table(Predt, Truth) # Creating a confusion matrix
 x
@@ -555,10 +557,12 @@ plot(main.logr_l_3)
 
 pred = predict(main.logr_l_3, newdata = Bank_mrkt_data_partition_train, type="response")
 
-Bank_mrkt_data_partition_train['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+Bank_mrkt_data_partition_train['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "no"))
 
 Truth = Bank_mrkt_data_partition_train$Class
 Predt = Bank_mrkt_data_partition_train$Pred_Out
+
+confusionMatrix(table(Predt, Truth))
 
 x = table(Predt, Truth) # Creating a confusion matrix
 x
@@ -577,15 +581,17 @@ Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100
 Specivty
 
 
-#validation against test train split
+#validation against test split
   
 
 pred = predict(main.logr_l_3, newdata = Bank_mrkt_data_partition_test, type="response")
 
-Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "no"))
 
 Truth = Bank_mrkt_data_partition_test$Class
 Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+confusionMatrix(table(Predt, Truth))
 
 x = table(Predt, Truth) # Creating a confusion matrix
 x
@@ -617,12 +623,16 @@ hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
 
 plot(logr.model.complex)
 
+logr.model.complex$aic
+
 pred = predict(logr.model.complex, newdata = Bank_mrkt_data_partition_test, type="response")
 
-Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "no"))
 
 Truth = Bank_mrkt_data_partition_test$Class
 Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+confusionMatrix(table(Predt, Truth))
 
 x = table(Predt, Truth) # Creating a confusion matrix
 x

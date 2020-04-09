@@ -387,6 +387,8 @@ exp(cbind("Odds ratio" = coef(main.logr), confint.default(main.logr, level = 0.9
 
 plot(main.logr, pch = 16)
 
+main.logr$aic
+
 
 hoslem.test(main.logr$y, fitted(main.logr), g=10)
 

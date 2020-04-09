@@ -517,6 +517,8 @@ step(main.logr_l_2,
 
 plot(main.logr_l_2)
 
+exp(cbind("Odds ratio" = coef(main.logr_l_2), confint.default(main.logr_l_2, level = 0.95)))
+
 coefficients(main.logr_l_2)
 
 main.logr_l_2

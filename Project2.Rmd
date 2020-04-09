@@ -197,11 +197,11 @@ fig5
 #Test Train Splits 
 
 #Down Sampling 
-set.seed(8474)
+set.seed(1234)
 Bank_mrkt_data_dwn_sample = downSample(Bank_mrkt_data[,1:20], Bank_mrkt_data[,21])
 
 #Controling Sampling by modifying the p in the create partition for creating the test train splits from the downsampled data for training. 
-set.seed(8474)
+set.seed(1234)
 Bank_mrkt_data_partition_idx = createDataPartition(Bank_mrkt_data_dwn_sample$Class, p=.5, list = FALSE, times = 1)
 
 

@@ -511,6 +511,12 @@ main.logr_l_2 = glm(Class ~ duration + cons.price.idx + contact + poutcome,data=
 
 plot(main.logr_l_2)
 
+coefficients(main.logr_l_2)
+
+main.logr_l_2
+
+summary(main.logr_l_2)
+
 hoslem.test(main.logr_l_2$y, fitted(main.logr_l_2), g=10)
 
 main.logr_l_2$aic 
@@ -551,6 +557,10 @@ Specivty
 main.logr_l_3 = glm(Class ~ duration + month + emp.var.rate + cons.price.idx + contact + poutcome + campaign + euribor3m + cons.conf.idx + job + education ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
 
 main.logr_l_3$aic
+
+summary(main.logr_l_3)
+
+coefficients(main.logr_l_3)
 
 hoslem.test(main.logr_l_3$y, fitted(main.logr_l_3), g=10)
 plot(main.logr_l_3)
@@ -620,6 +630,10 @@ step(main.logr_l_3,
      test="Chisq",
      data=Bank_mrkt_data_partition_train)
 hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
+
+logr.model.complex$aic
+
+summary(logr.model.complex)
 
 plot(logr.model.complex)
 

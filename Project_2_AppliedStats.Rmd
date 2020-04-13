@@ -1,0 +1,1589 @@
+---
+title: "Applied Statistics 6372 Project 2"
+author: "Rajesh satluri"
+date: "3/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+
+# Introduction
+
+The data is related with direct marketing campaigns of a Portuguese banking institution. The marketing campaigns were based on phone calls. Often, more than one contact to the same client was required, in order to access if the product (bank term deposit) would be ('yes') or not ('no') subscribed.
+sification goal is to predict if the client will subscribe a term deposit (variable y).
+
+
+
+## Dataset
+There are four datasets:
+1) bank-additional-full.csv with all examples (41188) and 20 inputs, ordered by date (from May 2008 to November 2010), very close to the data analyzed in [Moro et al., 2014]
+2) bank-additional.csv with 10% of the examples (4119), randomly selected from 1), and 20 inputs.
+3) bank-full.csv with all examples and 17 inputs, ordered by date (older version of this dataset with less inputs).
+4) bank.csv with 10% of the examples and 17 inputs, randomly selected from 3 (older version of this dataset with less inputs).
+The smallest datasets are provided to test more computationally demanding machine learning algorithms (e.g., SVM).
+
+The classification goal is to predict if the client will subscribe (yes/no) a term deposit (variable y).
+
+Attribute Information:
+
+Input variables:
+
+# bank client data:
+
+1 - age (numeric)
+2 - job : type of job (categorical: 'admin.','blue-collar','entrepreneur','housemaid','management','retired','self-employed','services','student','technician','unemployed','unknown')
+3 - marital : marital status (categorical: 'divorced','married','single','unknown'; note: 'divorced' means divorced or widowed)
+4 - education (categorical: 'basic.4y','basic.6y','basic.9y','high.school','illiterate','professional.course','university.degree','unknown')
+5 - default: has credit in default? (categorical: 'no','yes','unknown')
+6 - housing: has housing loan? (categorical: 'no','yes','unknown')
+7 - loan: has personal loan? (categorical: 'no','yes','unknown')
+
+# related with the last contact of the current campaign:
+
+8 - contact: contact communication type (categorical: 'cellular','telephone')
+9 - month: last contact month of year (categorical: 'jan', 'feb', 'mar', ..., 'nov', 'dec')
+10 - day_of_week: last contact day of the week (categorical: 'mon','tue','wed','thu','fri')
+11 - duration: last contact duration, in seconds (numeric). Important note: this attribute highly affects the output target (e.g., if duration=0 then y='no'). Yet, the duration is not known before a call is performed. Also, after the end of the call y is obviously known. Thus, this input should only be included for benchmark purposes and should be discarded if the intention is to have a realistic predictive model.
+
+# other attributes:
+
+12 - campaign: number of contacts performed during this campaign and for this client (numeric, includes last contact)
+13 - pdays: number of days that passed by after the client was last contacted from a previous campaign (numeric; 999 means client was not previously contacted)
+14 - previous: number of contacts performed before this campaign and for this client (numeric)
+15 - poutcome: outcome of the previous marketing campaign (categorical: 'failure','nonexistent','success')
+
+# social and economic context attributes
+
+16 - emp.var.rate: employment variation rate - quarterly indicator (numeric)
+17 - cons.price.idx: consumer price index - monthly indicator (numeric)
+18 - cons.conf.idx: consumer confidence index - monthly indicator (numeric)
+19 - euribor3m: euribor 3 month rate - daily indicator (numeric)
+20 - nr.employed: number of employees - quarterly indicator (numeric)
+
+Output variable (desired target):
+21 - y - has the client subscribed a term deposit? (binary: 'yes','no')
+
+
+```{r}
+## Initialization and data load 
+library(knitr)
+library(pander)
+library(tidyverse)
+library(broom)
+library(scatterplot3d)
+library(DataCombine)
+library(corrplot)
+library(caret)
+library(kableExtra)
+library(lubridate)
+library(stringr)
+library(sjPlot) 
+library(gmodels)
+library(inspectdf)
+library(ggmosaic)
+library(cowplot)
+
+
+
+library(rms)
+library(ggplot2)
+library(GGally)
+library(dplyr)
+
+library(plotly)
+
+#install.packages("ResourceSelection")
+library(ResourceSelection)
+library(car)
+library(ROCR)
+library(MASS)
+library(glmnet)
+library(bestglm)
+#Bank_mrkt_data  = read.csv(file.choose(),header = TRUE, sep = ';')
+
+Bank_mrkt_data  = read.csv("https://raw.githubusercontent.com/andrewmejia600/MSDS_6372_Project_2/master/RAW_DATA/bank-additional-full.csv",header = TRUE, sep = ';')
+
+```
+
+# 50% - %0% Partition
+```{r}
+
+
+#Test Train Splits 
+
+#Down Sampling 
+set.seed(1234)
+Bank_mrkt_data_dwn_sample = downSample(Bank_mrkt_data[,1:20], Bank_mrkt_data[,21])
+
+#Controling Sampling by modifying the p in the create partition for creating the test train splits from the downsampled data for training. 
+set.seed(1234)
+Bank_mrkt_data_partition_idx = createDataPartition(Bank_mrkt_data_dwn_sample$Class, p=.5, list = FALSE, times = 1)
+
+
+Bank_mrkt_data_partition_train = Bank_mrkt_data_dwn_sample[Bank_mrkt_data_partition_idx,]
+Bank_mrkt_data_partition_test = Bank_mrkt_data_dwn_sample[-Bank_mrkt_data_partition_idx,]
+
+#Removing Row Number Partitions indices 
+row.names(Bank_mrkt_data_partition_train) = NULL
+row.names(Bank_mrkt_data_partition_test) = NULL 
+```
+
+
+
+
+## Merger starts
+
+
+```{r}
+
+
+#Test Train Splits 
+
+#Down Sampling 
+set.seed(1234)
+Bank_mrkt_data_dwn_sample = downSample(Bank_mrkt_data[,1:20], Bank_mrkt_data[,21])
+
+#Controling Sampling by modifying the p in the create partition for creating the test train splits from the downsampled data for training. 
+set.seed(1234)
+Bank_mrkt_data_partition_idx = createDataPartition(Bank_mrkt_data_dwn_sample$Class, p=.5, list = FALSE, times = 1)
+
+
+Bank_mrkt_data_partition_train = Bank_mrkt_data_dwn_sample[Bank_mrkt_data_partition_idx,]
+Bank_mrkt_data_partition_test = Bank_mrkt_data_dwn_sample[-Bank_mrkt_data_partition_idx,]
+
+#Removing Row Number Partitions indices 
+row.names(Bank_mrkt_data_partition_train) = NULL
+row.names(Bank_mrkt_data_partition_test) = NULL 
+
+
+
+
+colname_vec = str_replace_all(toString(names(Bank_mrkt_data)[1:20]),"\\,", "\\ +")
+
+#lda_analysis = lda(Class ~ age + job + marital + education + default + housing + loan + contact + month + day_of_week + duration + campaign + pdays + previous + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train)
+
+#LDA on continous variables --- Highest Accuracy 
+
+lda_analysis = lda(Class ~ age +  duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train)
+
+pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
+Truth = Bank_mrkt_data_partition_test$Class
+x = table(pred,Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+#LDA of highly correlated factors 
+
+lda_analysis = lda(Class ~ emp.var.rate + nr.employed + euribor3m, data = Bank_mrkt_data_partition_train)
+
+pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
+Truth = Bank_mrkt_data_partition_test$Class
+x = table(pred,Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+#LDA of highly varianced correlated factors 
+
+lda_analysis = lda(Class ~ previous + emp.var.rate + cons.price.idx, data = Bank_mrkt_data_partition_train)
+
+pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
+Truth = Bank_mrkt_data_partition_test$Class
+x = table(pred,Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+lda_analysis = lda(Class ~ age +  duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train, prior =  c(.89,.11))
+
+pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
+Truth = Bank_mrkt_data_partition_test$Class
+x = table(pred,Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+#PCA outputs for LDA comparison : model does not perform as well as original LDA with highest accuracy of 84% 
+
+lda_analysis = lda(Class ~ age + duration, data = Bank_mrkt_data_partition_train)
+
+pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
+Truth = Bank_mrkt_data_partition_test$Class
+x = table(pred,Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+
+
+#qda analysis 
+qda_analysis = qda(Class ~ age +  duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train)
+
+pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
+Truth = Bank_mrkt_data_partition_test$Class
+x = table(pred,Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+
+```
+
+
+#PCA Analysis 
+```{r}
+#Balanced test train split
+pairs(Bank_mrkt_data_partition_train[, c(1,11,12,13,14,16,17,18,19,20)], col = Bank_mrkt_data_partition_train$Class)
+
+#Not balanced, only 11% is yes 
+pairs(Bank_mrkt_data[, c(1,11,12,13,14,16,17,18,19,20)], col = Bank_mrkt_data$y)
+
+#bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,12,13,14,16,17,18,19,20)]
+
+#bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,12,20)]
+
+#bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,16,18)]
+
+
+#bank_train_reduced = Bank_mrkt_data[, c(1,12,18)]
+
+#promising 
+bank_train_reduced = Bank_mrkt_data[,c(1,11,12,16)]
+
+#Also promising correlated vars 
+#bank_train_reduced = Bank_mrkt_data[,c(1,11,16)]
+
+pairs(bank_train_reduced, col = Bank_mrkt_data$y)
+
+pc.result = prcomp(bank_train_reduced,scale.=TRUE)
+pc.scores = pc.result$x
+
+pc.result
+pairs(pc.scores)
+
+```
+
+##
+
+```{r}
+
+par(mfrow=c(1,2))
+eigenvals<-(pc.result$sdev)^2
+plot(1:dim(bank_train_reduced)[2],eigenvals/sum(eigenvals),type="l",main="Scree Plot",ylab="Prop. Var. Explained")
+cumulative.prop<-cumsum(eigenvals/sum(eigenvals))
+plot(1:dim(bank_train_reduced)[2],cumulative.prop,type="l",main="Cumulative proportion",ylim=c(0,1))
+
+
+```
+
+```{r}
+par(mfrow=c(1,1))
+
+##Minimal PCAs needed to have cumulative explained variance higher than .9
+
+minimal.pca <- which(cumulative.prop>0.9)[1]
+minimal.pca
+```
+
+
+#Ading the response column to the PCs 
+```{r}
+pc.scores = data.frame(pc.scores)
+#pc.scores$Class = Bank_mrkt_data_partition_train$Class
+pc.scores$Class = Bank_mrkt_data$y
+
+ggplot(data = pc.scores, aes(x = PC1, y = PC2 )) + geom_point(aes(col=pc.scores$Class), size = 1, shape = '*') + ggtitle("PCA of Deposits ")
+
+ggplot(data = pc.scores, aes(x = PC2, y = PC3 )) + geom_point(aes(col=pc.scores$Class), size = 1, shape = '*') + ggtitle("PCA of Deposits ")
+
+
+ggplot(data = pc.scores, aes(x = PC3, y = PC4 )) + geom_point(aes(col=pc.scores$Class), size = 1, shape = '*') + ggtitle("PCA of Deposits ")
+
+```
+
+#Logistic Regression Full list of variables -- HL GOF test pvalue < 2.2e-16 not a good fit 
+
+```{r}
+
+
+main.logr<-glm(Class ~ age + job + marital + education + default + housing + loan + contact + month + day_of_week + duration + campaign + pdays + previous + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit') )
+
+summary(main.logr)
+exp(cbind("Odds ratio" = coef(main.logr), confint.default(main.logr, level = 0.95)))
+#vif(logr)
+
+plot(main.logr, pch = 16)
+
+main.logr$aic
+
+
+hoslem.test(main.logr$y, fitted(main.logr), g=10)
+
+pred = predict(main.logr, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+```
+
+#The Leverage plot looks better here then compared to original model with all predictors  and HSLM test proves better fitting model --- Possibly start thinking of duration as a categorical variable 
+```{r}
+
+logr<-glm(Class ~ age + job + education + contact + campaign + previous ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit') )
+
+summary(logr)
+exp(cbind("Odds ratio" = coef(logr), confint.default(logr, level = 0.95)))
+vif(logr)
+
+plot(logr)
+
+
+
+hoslem.test(logr$y, fitted(logr), g=10)
+
+pred = predict(logr, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+
+
+```
+
+
+
+
+#Original complex model 
+```{r}
+
+main.logr_l = glm(Class ~ age + job + education + contact,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+
+
+summary(main.logr_l)
+exp(cbind("Odds ratio" = coef(main.logr_l), confint.default(main.logr_l, level = 0.95)))
+vif(main.logr_l)
+
+plot(main.logr_l)
+
+
+hoslem.test(main.logr_l$y, fitted(main.logr_l), g=10)
+
+
+pred = predict(main.logr_l, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+logr.model.complex = glm(Class ~ age + job + education + contact + age:contact + age:education ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+step(main.logr_l,
+     scope = list(upper=logr.model.complex),
+     direction="forward",
+     test="Chisq",
+     data=Bank_mrkt_data_partition_train)
+hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
+
+pred = predict(logr.model.complex, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+Senstvty = x[1]/(x[1] + x[2]) * 100 
+Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
+
+
+```
+
+#Winning Base Model 
+```{r}
+
+main.logr_l_2 = glm(Class ~ duration + cons.price.idx + contact + poutcome,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+
+resid_lev_fit = lrm(Class ~ duration + cons.price.idx + contact + poutcome,data=Bank_mrkt_data_partition_train, x = TRUE,y = TRUE )
+
+if_point = which.influence(resid_lev_fit, cutoff = 0.0055)
+
+step(main.logr_l_2,
+     scope = list(upper=main.logr),
+     direction="forward",
+     test="Chisq",
+     data=Bank_mrkt_data_partition_train)
+  
+plot(main.logr_l_2)
+
+exp(cbind("Odds ratio" = coef(main.logr_l_2), confint.default(main.logr_l_2, level = 0.95)))
+
+coefficients(main.logr_l_2)
+
+main.logr_l_2
+
+summary(main.logr_l_2)
+
+hoslem.test(main.logr_l_2$y, fitted(main.logr_l_2), g=10)
+
+main.logr_l_2$aic
+
+pred = predict(main.logr_l_2, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "no"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+confusionMatrix(table(Predt, Truth))
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+Senstvty = x[1]/(x[1] + x[2]) * 100 
+
+Senstvty
+
+Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
+
+Specivty
+
+
+```
+
+# L3_is final model for prediction with highest accuracy and lowest AIC yields best AUC results 
+#Good overall prediction score especially when looking at ROC curves not much gain in complex models, pretty good accuracy in truth tables for main model-- not a good fit to data -- Removing outliers did not yield much gain in model performance. 
+```{r}
+
+
+main.logr_l_3 = glm(Class ~ duration + month + emp.var.rate + cons.price.idx + contact + poutcome + campaign + euribor3m + cons.conf.idx + job + education ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+
+resid_lev_fit = lrm(Class ~ duration + month + emp.var.rate + cons.price.idx + contact + poutcome + campaign + euribor3m + cons.conf.idx + job + education,data=Bank_mrkt_data_partition_train, x = TRUE,y = TRUE )
+
+if_point = which.influence(resid_lev_fit, cutoff = 0.01)
+
+
+step(main.logr_l_3,
+     scope = list(upper=main.logr),
+     direction="forward",
+     test="Chisq",
+     data=Bank_mrkt_data_partition_train)
+
+exp(cbind("Odds ratio" = coef(main.logr_l_3), confint.default(main.logr_l_3, level = 0.95)))
+
+main.logr_l_3$aic
+
+summary(main.logr_l_3)
+
+coefficients(main.logr_l_3)
+
+hoslem.test(main.logr_l_3$y, fitted(main.logr_l_3), g=10)
+plot(main.logr_l_3)
+
+pred = predict(main.logr_l_3, newdata = Bank_mrkt_data_partition_train, type="response")
+
+Bank_mrkt_data_partition_train['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "no"))
+
+Truth = Bank_mrkt_data_partition_train$Class
+Predt = Bank_mrkt_data_partition_train$Pred_Out
+
+confusionMatrix(table(Predt, Truth))
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+Senstvty = x[1]/(x[1] + x[2]) * 100 
+
+Senstvty
+
+Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
+
+Specivty
+
+
+#validation against test split
+  
+
+pred = predict(main.logr_l_3, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "no"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+confusionMatrix(table(Predt, Truth))
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+  
+Senstvty = x[1]/(x[1] + x[2]) * 100 
+
+Senstvty
+
+Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
+
+Specivty
+
+
+
+
+
+logr.model.complex = glm(Class ~ duration + month + emp.var.rate + cons.price.idx + contact + poutcome + campaign + euribor3m + cons.conf.idx + job + education + duration:education + duration:job ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+step(main.logr_l_3,
+     scope = list(upper=logr.model.complex),
+     direction="forward",
+     test="Chisq",
+     data=Bank_mrkt_data_partition_train)
+hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
+
+logr.model.complex$aic
+
+summary(logr.model.complex)
+
+plot(logr.model.complex)
+
+logr.model.complex$aic
+
+pred = predict(logr.model.complex, newdata = Bank_mrkt_data_partition_test, type="response")
+
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "no"))
+
+Truth = Bank_mrkt_data_partition_test$Class
+Predt = Bank_mrkt_data_partition_test$Pred_Out
+
+confusionMatrix(table(Predt, Truth))
+
+x = table(Predt, Truth) # Creating a confusion matrix
+x
+#Missclassification Error
+ME = (x[2,1]+x[1,2])/sum(x)
+ME
+#Calculating overall accuracy
+1-ME
+
+Senstvty = x[1]/(x[1] + x[2]) * 100 
+
+Senstvty
+
+Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
+
+Specivty
+
+
+```
+
+
+
+#ROC Curves need to be in GLMNET inputs matrices 
+```{r}
+#Base Model AUC results 
+Bank_mrkt_data_partition_formula = as.formula(Class ~ duration  + cons.price.idx + contact + poutcome)
+#Winning model AUC results 
+Bank_mrkt_data_partition_formula = as.formula(Class ~ duration + month + emp.var.rate + cons.price.idx + contact + poutcome + campaign + euribor3m + cons.conf.idx + job + education)
+Bank_mrkt_data_partition_train_mat.x = model.matrix(Bank_mrkt_data_partition_formula, Bank_mrkt_data_partition_train)
+Bank_mrkt_data_partition_train_mat.y = as.matrix(Bank_mrkt_data_partition_train[,21], ncol=1) 
+
+Bank_mrkt_data_partition_test_mat.x = model.matrix(Bank_mrkt_data_partition_formula, Bank_mrkt_data_partition_test)
+Bank_mrkt_data_partition_test_mat.y = as.matrix(Bank_mrkt_data_partition_test[,21], ncol=1) 
+
+
+log_glmnet = glmnet(Bank_mrkt_data_partition_train_mat.x, Bank_mrkt_data_partition_train_mat.y, family = "binomial")
+
+plot(log_glmnet)
+
+coef(log_glmnet)
+
+cvfit =  cv.glmnet(Bank_mrkt_data_partition_train_mat.x, Bank_mrkt_data_partition_train_mat.y, family = "binomial", type.measure = "class", nlambda = 1000)
+
+plot(cvfit)
+coef(cvfit, s = "lambda.min")
+
+
+fit.pred = predict(cvfit, newx =  Bank_mrkt_data_partition_train_mat.x, type = "response")
+
+pred  = prediction(fit.pred[,1], Bank_mrkt_data_partition_train_mat.y)
+roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+auc.train = performance(pred, measure = "auc")
+auc.train =  auc.train@y.values
+
+#Plot ROC
+plot(roc.perf)
+abline(a=0, b= 1) #Ref line indicating poor performance
+text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+
+
+
+fit.pred.test = predict(cvfit, newx =  Bank_mrkt_data_partition_test_mat.x, type = "response")
+
+pred.test  = prediction(fit.pred.test[,1], Bank_mrkt_data_partition_test_mat.y)
+roc.perf = performance(pred.test, measure = "tpr", x.measure = "fpr")
+auc.train = performance(pred.test, measure = "auc")
+auc.train =  auc.train@y.values
+
+#Plot ROC
+plot(roc.perf)
+abline(a=0, b= 1) #Ref line indicating poor performance
+text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+
+```
+#end of merge
+
+
+
+
+
+
+
+
+
+#Common plot functions
+```{r, echo=TRUE}
+
+# Defining Plot Function
+
+catplot <- function(df, x,y){
+  ggplot(data = df, aes_string(x = x, fill = y)) + 
+    geom_bar(position = "fill", alpha = 0.9) + 
+    coord_flip()
+}
+# setting default parameters for crosstables
+fun_crosstable = function(df, var1, var2){
+  # df: dataframe containing both columns to cross
+  # var1, var2: columns to cross together.
+  CrossTable(df[, var1], df[, var2],
+             prop.r = T,
+             prop.c = F,
+             prop.t = F,
+             prop.chisq = F,
+             dnn = c(var1, var2))
+}
+
+```
+
+
+```{r}
+dim(Bank_mrkt_data)
+```
+dataset 41188 rows and 21 columns
+
+
+```{r}
+glimpse(Bank_mrkt_data)
+
+```
+First 20 variables are potential predictors and 21st variable 'y' is the response variable
+
+```{r}
+## Checking dependent variable
+
+prop.table(table(Bank_mrkt_data$y))
+
+##NOTES:
+# An implementation of a cross-tabulation function with output similar to S-Plus crosstabs() and SAS Proc Freq with Chi-square, Fisher and McNemar tests of the independence of all table factors
+
+CrossTable(Bank_mrkt_data$y)
+
+
+y_pie = Bank_mrkt_data%>%group_by(y)%>%dplyr::summarize(count=n(),  y_percent = n()/nrow(Bank_mrkt_data))
+ggplot(data=y_pie,aes(x=2,y=y_percent,fill=y))+
+  geom_col(color="white")+
+  coord_polar("y",start = 1)+
+  geom_text(aes(label=paste0(round(y_percent*100),"%")),
+            position = position_stack(vjust = 0.5))+
+  theme(panel.background = element_blank(),
+        axis.line = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        plot.title = element_text(hjust = 0.5,size = I(19)))+
+  ggtitle("Percent Of y")+
+xlim(.75,2.5)
+```
+Resampling is required as it is imbalance two level categorical variable.
+
+```{r}
+
+Bank_mrkt_data %>% summarise_all(list(~sum(. == "unknown"))) %>% gather(key = "variable", value = "unknown_rows") %>%   arrange(-unknown_rows)
+
+
+```
+default has maximum number of unknowns, next comes education, housing, loan, job and marital. Totally six predictors has unknowns. As unknown observations are huge, before we decide them to delete we will find the significant predictors.
+
+
+# EDA and Feature selection
+
+##Categorical variables and their categories distribution
+
+```{r}
+## Inspect Categorical Levels
+bank_ins_cat=inspect_cat(Bank_mrkt_data)
+
+bank_ins_cat
+bank_ins_cat$levels
+show_plot(bank_ins_cat)
+```
+
+
+
+
+
+##Categorical variables and their categories distribution by RESPONSE 'y' -  !!IMPORTANT
+```{r}
+# select categorical variables
+categorical_variables = Bank_mrkt_data %>% select_if(is.factor) %>% names()
+
+
+# remove the response
+response_ind <- match('y', categorical_variables)
+categorical_variables <- categorical_variables[-response_ind]
+
+
+# plot categorical variables
+for (i in categorical_variables) {
+
+print(i)
+  CrossTable(Bank_mrkt_data[, i], Bank_mrkt_data[,"y"],
+             prop.r = T,
+             prop.c = F,
+             prop.t = F,
+             prop.chisq = F,
+             dnn = c(i, "y"))
+
+  
+}
+
+catplot <- function(df, x,y){
+  ggplot(data = df, aes_string(x = x, fill = y)) + 
+    geom_bar(position = "fill", alpha = 0.9) + 
+    coord_flip()
+}
+
+# Lapply on all categorical_variables values and assing to list object
+categorical_variables_plot_list <-lapply(categorical_variables, function(x) catplot(Bank_mrkt_data %>% keep(is.factor) ,x, "y"))
+# output plot grid
+library(cowplot)
+cowplot::plot_grid(plotlist = categorical_variables_plot_list)
+
+#Education
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, education), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Education") +
+   ylab("y")
+
+
+#default
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, default), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Default") +
+   ylab("y")
+
+#housing
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, housing), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Housing") +
+   ylab("y")
+
+
+#loan
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, loan), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Loan") +
+   ylab("y")
+
+#contact
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, contact), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Contact") +
+   ylab("y")
+
+#month
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, month), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Month") +
+   ylab("y")
+
+
+#day_of_week
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, day_of_week), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Day of Week") +
+  ylab("y")
+
+
+#poutcome
+Bank_mrkt_data %>% 
+  ggplot() +
+  geom_mosaic(aes(x = product(y, poutcome), fill = y)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                                hjust = 1,
+                                                vjust = 0.5),
+                     axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank()) +
+  xlab("Poutcome") +
+  ylab("y")
+
+
+
+
+```
+
+# First option is to remove all unknown observations
+
+```{r}
+
+#filtering out unknown responses  for unkowns 
+
+#Bank_mrkt_data = Bank_mrkt_data %>% filter((Bank_mrkt_data$education != "unknown") & 
+ #                                            (Bank_mrkt_data$job != "unknown") & 
+  #                                           (Bank_mrkt_data$marital != "unkown") & 
+   #                                          (Bank_mrkt_data$default != "unkown") &
+    #                                         (Bank_mrkt_data$housing != "unkown") &
+     #                                        (Bank_mrkt_data$loan != "unkown") &
+      #                                       (Bank_mrkt_data$contact != "unkown") &
+       #                                      (Bank_mrkt_data$loan != "unkown"))
+
+```
+
+# Second option is to selectively remove or convert unknows
+
+#marital
+
+[1] "marital"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  40858 
+
+ 
+             | y 
+     marital |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+    divorced |      4126 |       473 |      4599 | 
+             |     0.897 |     0.103 |     0.113 | 
+-------------|-----------|-----------|-----------|
+     married |     22178 |      2516 |     24694 | 
+             |     0.898 |     0.102 |     0.604 | 
+-------------|-----------|-----------|-----------|
+      single |      9889 |      1605 |     11494 | 
+             |     0.860 |     0.140 |     0.281 | 
+-------------|-----------|-----------|-----------|
+     unknown |        62 |         9 |        71 | 
+             |     0.873 |     0.127 |     0.002 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36255 |      4603 |     40858 | 
+-------------|-----------|-----------|-----------|
+
+remove rows with "unknown" as value for this variable.
+
+```{r}
+Bank_mrkt_data = Bank_mrkt_data %>% 
+  filter(marital != "unknown")
+```
+
+
+#job
+
+[1] "job"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+              | y 
+          job |        no |       yes | Row Total | 
+--------------|-----------|-----------|-----------|
+       admin. |      9070 |      1352 |     10422 | 
+              |     0.870 |     0.130 |     0.253 | 
+--------------|-----------|-----------|-----------|
+  blue-collar |      8616 |       638 |      9254 | 
+              |     0.931 |     0.069 |     0.225 | 
+--------------|-----------|-----------|-----------|
+ entrepreneur |      1332 |       124 |      1456 | 
+              |     0.915 |     0.085 |     0.035 | 
+--------------|-----------|-----------|-----------|
+    housemaid |       954 |       106 |      1060 | 
+              |     0.900 |     0.100 |     0.026 | 
+--------------|-----------|-----------|-----------|
+   management |      2596 |       328 |      2924 | 
+              |     0.888 |     0.112 |     0.071 | 
+--------------|-----------|-----------|-----------|
+      retired |      1286 |       434 |      1720 | 
+              |     0.748 |     0.252 |     0.042 | 
+--------------|-----------|-----------|-----------|
+self-employed |      1272 |       149 |      1421 | 
+              |     0.895 |     0.105 |     0.035 | 
+--------------|-----------|-----------|-----------|
+     services |      3646 |       323 |      3969 | 
+              |     0.919 |     0.081 |     0.096 | 
+--------------|-----------|-----------|-----------|
+      student |       600 |       275 |       875 | 
+              |     0.686 |     0.314 |     0.021 | 
+--------------|-----------|-----------|-----------|
+   technician |      6013 |       730 |      6743 | 
+              |     0.892 |     0.108 |     0.164 | 
+--------------|-----------|-----------|-----------|
+   unemployed |       870 |       144 |      1014 | 
+              |     0.858 |     0.142 |     0.025 | 
+--------------|-----------|-----------|-----------|
+      unknown |       293 |        37 |       330 | 
+              |     0.888 |     0.112 |     0.008 | 
+--------------|-----------|-----------|-----------|
+ Column Total |     36548 |      4640 |     41188 | 
+--------------|-----------|-----------|-----------|
+
+
+The "unknown" level doesn't show any important information and should be discarded from the data. We'll remove rows containing this value in the "job" column.
+
+```{r}
+Bank_mrkt_data = Bank_mrkt_data %>% 
+  filter(job != "unknown")
+```
+
+
+#education
+Looks like there is positive correlation between the number of years of education and the odds to subscribe to a term deposit.
+[1] "education"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+                    | y 
+          education |        no |       yes | Row Total | 
+--------------------|-----------|-----------|-----------|
+           basic.4y |      3748 |       428 |      4176 | 
+                    |     0.898 |     0.102 |     0.101 | 
+--------------------|-----------|-----------|-----------|
+           basic.6y |      2104 |       188 |      2292 | 
+                    |     0.918 |     0.082 |     0.056 | 
+--------------------|-----------|-----------|-----------|
+           basic.9y |      5572 |       473 |      6045 | 
+                    |     0.922 |     0.078 |     0.147 | 
+--------------------|-----------|-----------|-----------|
+        high.school |      8484 |      1031 |      9515 | 
+                    |     0.892 |     0.108 |     0.231 | 
+--------------------|-----------|-----------|-----------|
+         illiterate |        14 |         4 |        18 | 
+                    |     0.778 |     0.222 |     0.000 | 
+--------------------|-----------|-----------|-----------|
+professional.course |      4648 |       595 |      5243 | 
+                    |     0.887 |     0.113 |     0.127 | 
+--------------------|-----------|-----------|-----------|
+  university.degree |     10498 |      1670 |     12168 | 
+                    |     0.863 |     0.137 |     0.295 | 
+--------------------|-----------|-----------|-----------|
+            unknown |      1480 |       251 |      1731 | 
+                    |     0.855 |     0.145 |     0.042 | 
+--------------------|-----------|-----------|-----------|
+       Column Total |     36548 |      4640 |     41188 | 
+--------------------|-----------|-----------|-----------|
+
+There are huge number of unknowns (1731 observations). We can't delete these records as there are 251 subscribers for term deposit. Instead of deleting, it is better to convert to university.degree as the proportion is ~ to unknown. Lets convert to university.degree.
+
+```{r}
+Bank_mrkt_data = Bank_mrkt_data %>% mutate(education = dplyr::recode(education, "unknown" = "university.degree"))
+#Bank_mrkt_data = Bank_mrkt_data %>%  filter(education != "unknown")
+```
+
+
+
+# default 
+This is not useful predictor as no one wants to mention that they have defaulted :)
+[1] "default"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+     default |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+          no |     28391 |      4197 |     32588 | 
+             |     0.871 |     0.129 |     0.791 | 
+-------------|-----------|-----------|-----------|
+     unknown |      8154 |       443 |      8597 | 
+             |     0.948 |     0.052 |     0.209 | 
+-------------|-----------|-----------|-----------|
+         yes |         3 |         0 |         3 | 
+             |     1.000 |     0.000 |     0.000 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+
+default can't be used as only 3 answered yes for default. Lets drop this column
+
+```{r}
+Bank_mrkt_data = Bank_mrkt_data %>% dplyr::select(-default)
+```
+
+#housing 
+yes and no are almost evenly distributed. We need to do further investigation to take this predictor
+
+[1] "housing"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+     housing |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+          no |     16596 |      2026 |     18622 | 
+             |     0.891 |     0.109 |     0.452 | 
+-------------|-----------|-----------|-----------|
+     unknown |       883 |       107 |       990 | 
+             |     0.892 |     0.108 |     0.024 | 
+-------------|-----------|-----------|-----------|
+         yes |     19069 |      2507 |     21576 | 
+             |     0.884 |     0.116 |     0.524 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+
+
+#loan 
+same as housing yes and no are almost evenly distributed. We need to do further investigation to take this predictor
+[1] "loan"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+        loan |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+          no |     30100 |      3850 |     33950 | 
+             |     0.887 |     0.113 |     0.824 | 
+-------------|-----------|-----------|-----------|
+     unknown |       883 |       107 |       990 | 
+             |     0.892 |     0.108 |     0.024 | 
+-------------|-----------|-----------|-----------|
+         yes |      5565 |       683 |      6248 | 
+             |     0.891 |     0.109 |     0.152 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+
+Lets convert these unknowns to 'no'
+
+```{r}
+#Bank_mrkt_data = Bank_mrkt_data %>% mutate(loan = recode(loan, "unknown" = "no"))
+Bank_mrkt_data = Bank_mrkt_data %>% mutate(loan = dplyr::recode(loan, "unknown" = "no"))
+```
+
+
+
+#contact
+his feature is really interesting, 14.7% of cellular responders subscribed to a term deposit while only 5.2% of telephone responders did.
+
+[1] "contact"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+     contact |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+    cellular |     22291 |      3853 |     26144 | 
+             |     0.853 |     0.147 |     0.635 | 
+-------------|-----------|-----------|-----------|
+   telephone |     14257 |       787 |     15044 | 
+             |     0.948 |     0.052 |     0.365 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+
+#month
+dec is very interesting people may be in high sprits. Success rate is very high. Need to do further investigation o this predictor
+ 
+[1] "month"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+       month |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+         apr |      2093 |       539 |      2632 | 
+             |     0.795 |     0.205 |     0.064 | 
+-------------|-----------|-----------|-----------|
+         aug |      5523 |       655 |      6178 | 
+             |     0.894 |     0.106 |     0.150 | 
+-------------|-----------|-----------|-----------|
+         dec |        93 |        89 |       182 | 
+             |     0.511 |     0.489 |     0.004 | 
+-------------|-----------|-----------|-----------|
+         jul |      6525 |       649 |      7174 | 
+             |     0.910 |     0.090 |     0.174 | 
+-------------|-----------|-----------|-----------|
+         jun |      4759 |       559 |      5318 | 
+             |     0.895 |     0.105 |     0.129 | 
+-------------|-----------|-----------|-----------|
+         mar |       270 |       276 |       546 | 
+             |     0.495 |     0.505 |     0.013 | 
+-------------|-----------|-----------|-----------|
+         may |     12883 |       886 |     13769 | 
+             |     0.936 |     0.064 |     0.334 | 
+-------------|-----------|-----------|-----------|
+         nov |      3685 |       416 |      4101 | 
+             |     0.899 |     0.101 |     0.100 | 
+-------------|-----------|-----------|-----------|
+         oct |       403 |       315 |       718 | 
+             |     0.561 |     0.439 |     0.017 | 
+-------------|-----------|-----------|-----------|
+         sep |       314 |       256 |       570 | 
+             |     0.551 |     0.449 |     0.014 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+
+
+#day_of_week
+No weekends calls. But remaining 5 days are almost evenly distributed. Is it important?
+
+
+[1] "day_of_week"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+ day_of_week |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+         fri |      6981 |       846 |      7827 | 
+             |     0.892 |     0.108 |     0.190 | 
+-------------|-----------|-----------|-----------|
+         mon |      7667 |       847 |      8514 | 
+             |     0.901 |     0.099 |     0.207 | 
+-------------|-----------|-----------|-----------|
+         thu |      7578 |      1045 |      8623 | 
+             |     0.879 |     0.121 |     0.209 | 
+-------------|-----------|-----------|-----------|
+         tue |      7137 |       953 |      8090 | 
+             |     0.882 |     0.118 |     0.196 | 
+-------------|-----------|-----------|-----------|
+         wed |      7185 |       949 |      8134 | 
+             |     0.883 |     0.117 |     0.197 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+
+
+#poutcome
+interesting. prevously successful is more successful next time.
+
+[1] "poutcome"
+
+ 
+   Cell Contents
+|-------------------------|
+|                       N |
+|           N / Row Total |
+|-------------------------|
+
+ 
+Total Observations in Table:  41188 
+
+ 
+             | y 
+    poutcome |        no |       yes | Row Total | 
+-------------|-----------|-----------|-----------|
+     failure |      3647 |       605 |      4252 | 
+             |     0.858 |     0.142 |     0.103 | 
+-------------|-----------|-----------|-----------|
+ nonexistent |     32422 |      3141 |     35563 | 
+             |     0.912 |     0.088 |     0.863 | 
+-------------|-----------|-----------|-----------|
+     success |       479 |       894 |      1373 | 
+             |     0.349 |     0.651 |     0.033 | 
+-------------|-----------|-----------|-----------|
+Column Total |     36548 |      4640 |     41188 | 
+-------------|-----------|-----------|-----------|
+```{r}
+# Inspect Continious variables
+head(Bank_mrkt_data)
+bank_ins_con = inspect_num(Bank_mrkt_data)
+
+
+## Inspect previous. Clients contacted previously
+table(Bank_mrkt_data$previous)
+
+##tally is a convenient wrapper for summarise that will either call n or sum(n) depending on whether you're tallying for the first time, or #re-tallying. count() is similar, but also does the group_by for you.
+Bank_mrkt_data %>% group_by(pdays) %>% tally() %>% arrange(desc(n)) %>% head()
+
+
+
+# Find Correlation between prevous and pdays
+cor(Bank_mrkt_data$previous, Bank_mrkt_data$pdays)  ## Note these are correlated. we may drop pdays
+```
+#pdays an previous
+We will consider either pdays or previous. 
+
+If we consider pdays, this is the number of days that passed by after the client was last contacted from a previous campaign. 999 value means the client wasn't previously contacted. It makes sence to make dummy variable. 0 means not contacted and 1 means contacted.
+
+
+Recontacting a client after a previous campaign seems to highly increase the odds of subscription.
+
+
+```{r}
+Bank_mrkt_data = Bank_mrkt_data %>% mutate(pdays_dummy = if_else(pdays == 999, "0", "1")) %>% dplyr::select(-pdays) %>% dplyr::select(-previous)
+```
+
+```{r}
+
+fun_crosstable(Bank_mrkt_data, "pdays_dummy", "y")
+```
+
+
+##Continious variables and covariance
+
+```{r}
+
+# correlaion between duration and response y. There is relation here.
+
+
+ggplot(Bank_mrkt_data %>% group_by(duration, y) %>%  tally(), 
+       aes(duration, n, fill = y)) +
+      geom_col() +
+      theme_bw()
+
+ggplot(Bank_mrkt_data, aes(duration, fill = y)) +
+  geom_density(alpha = 0.5) +
+  theme_bw()
+### remove duration
+```
+
+
+```{r}
+
+## Compare contious variables 
+cor_numericVal = inspect_cor(Bank_mrkt_data)
+
+cor_numericVal1 <- select_if(Bank_mrkt_data, is.numeric) %>% cor()
+corrplot(cor_numericVal1, method = "number")
+
+corrplot(cor_numericVal1, method = "square",  tl.srt = 50, tl.col = "black", tl.cex = 0.6, title = "Correlation of Variables", mar=c(0,0,1,0))
+ corrplot(cor_numericVal1, method = "number",
+           type = "upper",
+           tl.cex = 0.8,
+           tl.srt = 45,
+           tl.col = "black")
+
+
+```
+
+
+
+# 80% - 20% Partition
+```{r}
+set.seed(1234)
+
+ind = createDataPartition(Bank_mrkt_data$y,
+                          times = 1,
+                          p = 0.8,
+                          list = F)
+Bank_mrkt_data_train = Bank_mrkt_data[ind, ]
+Bank_mrkt_data_test = Bank_mrkt_data[-ind, ]
+```
+
+`bank_train` will be our training set while `bank_test` will be used to validate our models.
+
+Let's start out with logistic regressions, decision trees, random forests (through the `ranger` package), then boosting (Extreme GBM then Light GBM).
+
+
+
+## Logistic regression
+
+The first model is a logistic regression, with every remaining features.
+
+```{r}
+logistic_reg = glm(y ~ .,
+               data = Bank_mrkt_data_train,
+               family = "binomial")
+
+summary(logistic_reg)
+exp(cbind("Odds ratio" = coef(logistic_reg), confint.default(logistic_reg, level = 0.95)))
+#vif(logr)
+
+plot(logistic_reg, pch = 16)
+
+
+hoslem.test(logistic_reg$y, fitted(logistic_reg), g=10)
+```
+
+### Results
+
+```{r}
+summary(logistic_reg)
+```
+
+
+### Predicted scores
+
+Let's obtain the predicted scores for both datasets. The training scores are useful to evaluate how well did the training go and the validation scores (test scores) will be used to validate the model (cross-validation).
+
+```{r, message=F, warning=F}
+
+
+# creating classes according to score and cut
+fun_cut_predict = function(score, cut) {
+  # score: predicted scores
+  # cut: threshold for classification
+  
+  classes = score
+  classes[classes > cut] = 'yes'
+  classes[classes <= cut] = 'no'
+  classes = as.factor(classes)
+  
+  return(classes)  
+}
+
+logistic_train_score = predict(logistic_reg, newdata = Bank_mrkt_data_train,  type = "response")
+
+logistic_train_class = fun_cut_predict(logistic_train_score, 0.2)
+# matrix
+logistic_train_confm = confusionMatrix(logistic_train_class, Bank_mrkt_data_train$y, 
+                                       positive = "yes",
+                                       mode = "everything")
+logistic_train_confm
+
+logistic_test_score = predict(logistic_reg,newdata = Bank_mrkt_data_test,type = "response")
+
+
+logistic_test_class = fun_cut_predict(logistic_test_score, 0.2)
+# matrix
+logistic_test_confm = confusionMatrix(logistic_test_class, Bank_mrkt_data_test$y, 
+                                       positive = "yes",
+                                       mode = "everything")
+logistic_test_confm
+
+
+
+Bank_mrkt_data_test['Pred_Out'] = as.factor(ifelse(logistic_test_score>.50, "Yes", "No"))
+
+Actual_truth = Bank_mrkt_data_test$y
+Pred_truth = Bank_mrkt_data_test$Pred_Out
+
+c_table = table(Pred_truth, Actual_truth) # Creating a confusion matrix
+c_table
+#Missclassification Error
+MissClassification_Error = (c_table[2,1]+c_table[1,2])/sum(c_table)
+MissClassification_Error
+#Calculating overall accuracy
+1-MissClassification_Error
+```
+
+
+
+
+order the parameter significance
+```{r}
+ 
+  gg1 = varImp(logistic_reg) %>%  rownames_to_column() %>%    rename(variable = rowname) %>%  arrange(-Overall) %>% 
+    slice(1:floor(nrow(.))) %>% 
+    ggplot() +
+    aes(x = reorder(variable, Overall), weight = Overall, fill = -Overall) +
+    geom_bar() +
+    coord_flip() +
+    xlab("Variables") +
+    ylab("Importance") +
+    theme(legend.position = "none")
+  
+  imp_range = ggplot_build(gg1)[["layout"]][["panel_params"]][[1]][["x.range"]]
+  imp_gradient = scale_fill_gradient(limits = c(-imp_range[2], -imp_range[1]),
+                                     low = "#132B43", 
+                                     high = "#56B1F7")
+  gg1
+ 
+```
+
+
+
+
+
+

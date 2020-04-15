@@ -592,7 +592,7 @@ coefficients(main.logr_l_3)
 hoslem.test(main.logr_l_3$y, fitted(main.logr_l_3), g=10)
 plot(main.logr_l_3)
 
-pred = predict(main.logr_l_3, newdata = Bank_mrkt_data_partition_train, type="response")
+pred = main.logr_l_3$fitted.values
 
 Bank_mrkt_data_partition_train['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "no"))
 
@@ -746,6 +746,19 @@ auc.train =  auc.train@y.values
 plot(roc.perf)
 abline(a=0, b= 1) #Ref line indicating poor performance
 text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+
+
+performance_comp_mat_bse_model_winning = matrix(c(2573, 2067,2282,2358), nrow = 2, dimnames = list("BMdl" = c("No", "Yes"), "WMdl"= c("No", "Yes")))
+
+mcnemar.test(performance_comp_mat_bse_model_winning)
+
+
+performance_comp_mat_compl_model_winning = matrix(c(2277,2363,2282,2358), nrow = 2, dimnames = list("CMdl" = c("No", "Yes"), "WMdl"= c("No", "Yes")))
+
+mcnemar.test(performance_comp_mat_compl_model_winning)
+
+
+
 
 ```
 

@@ -27,167 +27,10 @@ library(MASS)
 library(stringr)
 library(glmnet)
 library(bestglm)
+library(rms)
 
 
 Bank_mrkt_data  = read.csv(file.choose(),header = TRUE, sep = ';')
-
-#Looking for complete records
-Bank_mrkt_data %>% filter(complete.cases(Bank_mrkt_data))
-
-#Looking for incomplete records 
-Bank_mrkt_data %>% filter(!complete.cases(Bank_mrkt_data))
-
-summary(Bank_mrkt_data)
-
-#unknown records 
-
-dim(Bank_mrkt_data %>% filter(grepl("unknown", Bank_mrkt_data$education)==TRUE))[1]
-dim(Bank_mrkt_data %>% filter(grepl("unknown", Bank_mrkt_data$job)==TRUE))[1]
-
-#filtering out unknown responses  for unkowns 
-
-Bank_mrkt_data = Bank_mrkt_data %>% filter((Bank_mrkt_data$education != "unknown") & 
-                                             (Bank_mrkt_data$job != "unknown") & 
-                                             (Bank_mrkt_data$marital != "unkown") & 
-                                             (Bank_mrkt_data$default != "unkown") &
-                                             (Bank_mrkt_data$housing != "unkown") &
-                                             (Bank_mrkt_data$loan != "unkown") &
-                                             (Bank_mrkt_data$contact != "unkown") &
-                                             (Bank_mrkt_data$loan != "unkown"))
-
-
-
-
-plot(Bank_mrkt_data[,1:3], col = Bank_mrkt_data$y)
-plot(Bank_mrkt_data[,4:7], col = Bank_mrkt_data$y)
-plot(Bank_mrkt_data[,8:11], col = Bank_mrkt_data$y)
-plot(Bank_mrkt_data[,12:15], col = Bank_mrkt_data$y)
-plot(Bank_mrkt_data[,16:20], col = Bank_mrkt_data$y)
-
-#need to make scatter plots based on differences in response variables of colors see HW for LDA     
-#We can see there is a disporationate amount of nos to yes records
-ggpairs(Bank_mrkt_data[,c(21, 1:3)], ggplot2::aes(colour=y))
-
-ggpairs(Bank_mrkt_data[,c(21, 4:7)],  ggplot2::aes(colour=y))
-
-ggpairs(Bank_mrkt_data[,c(21, 8:11)],  ggplot2::aes(colour=y))
-
-ggpairs(Bank_mrkt_data[,c(21, 12:15)],  ggplot2::aes(colour=y))
-
-ggpairs(Bank_mrkt_data[,c(21, 16:20)],  ggplot2::aes(colour=y))
-
-
-
-
-Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_point()
-
-Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_boxplot()
-
-Bank_mrkt_data %>% ggplot(aes(x = job, y = age , color = y)) + geom_boxplot()
-
-Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_col()
-
-
-#Note Duration can only be used as a sanity check 
-
-
-
-boxplot(Bank_mrkt_data$duration ~ Bank_mrkt_data$y, data = Bank_mrkt_data)
-
-
-#see a limited seperation of duration and month 
-Bank_mrkt_data %>% ggplot(aes(x = duration, y = month , color = y)) + geom_point()
-
-Bank_mrkt_data %>% ggplot(aes(x = duration, y = month , color = y)) + geom_point()
-
-
-#See a clear seperation between duration and age 
-Bank_mrkt_data %>% ggplot(aes(x = age, y = duration , color = y)) + geom_point() + geom_jitter()
-
-# see a clear seperation between duration and campaingn
-Bank_mrkt_data %>% ggplot(aes(x = duration, y = campaign , color = y)) + geom_point() + geom_jitter()
-
-#Bank_mrkt_data %>% ggplot(aes(x = previous, y = campaign , color = y)) + geom_point()
-
-#Star to see a clear seperation between nr. employed and cons.price.idx   
-Bank_mrkt_data %>% ggplot(aes(x = nr.employed, y = cons.price.idx , color = y)) + geom_boxplot()
-
-Bank_mrkt_data %>% ggplot(aes(x = job, y = cons.price.idx , color = y)) + geom_boxplot()
-
-Bank_mrkt_data %>% ggplot(aes(x = nr.employed, y = cons.conf.idx , color = y)) + geom_boxplot()
-
-Bank_mrkt_data %>% ggplot(aes(x = euribor3m, y = emp.var.rate, color = y)) + geom_point() + geom_jitter()
-
-Bank_mrkt_data %>% ggplot(aes(x = nr.employed, y = emp.var.rate, color = y)) + geom_point() + geom_jitter()
-
-Bank_mrkt_data %>% ggplot(aes(x =euribor3m , y = nr.employed, color = y)) + geom_point() + geom_jitter()
-
-
-#Looking for complex interactions marital and age seem to have some interaction 
-
-Bank_mrkt_data %>% ggplot(aes(x = education, y = age , color = y)) + geom_boxplot()
-
-Bank_mrkt_data %>% ggplot(aes(x = job, y = age , color = y)) + geom_boxplot()
-
-Bank_mrkt_data %>% ggplot(aes(x = marital, y = age , color = y)) + geom_boxplot()
-
-
-Bank_mrkt_data %>% ggplot(aes(x = contact, y = duration , color = y)) + geom_boxplot()
-
-#3d Graphs of duration 
-
-fig = plot_ly(Bank_mrkt_data, x = Bank_mrkt_data$duration, y = Bank_mrkt_data$age, z = Bank_mrkt_data$y, color = Bank_mrkt_data$y, colors = c('#BF382A', '#0C4B8E'))
-fig = fig %>% add_markers()
-fig = fig %>% layout(scene = list(xaxis = list(title = 'Duration'),
-                     yaxis = list(title = 'Age'),
-                     zaxis = list(title = 'Outcome')))
-
-fig
-  
-
-
-fig2 = plot_ly(Bank_mrkt_data, x = Bank_mrkt_data$duration, y = Bank_mrkt_data$campaign, z = Bank_mrkt_data$y, color = Bank_mrkt_data$y, colors = c('#BF382A', '#0C4B8E'))
-fig2 = fig2 %>% add_markers()
-fig2 = fig2 %>% layout(scene = list(xaxis = list(title = 'Duration'),
-                     yaxis = list(title = 'Campaign'),
-                     zaxis = list(title = 'Outcome')))
-
-fig2
-
-
-
-
-
-
-
-fig3 = plot_ly(Bank_mrkt_data, x = Bank_mrkt_data$euribor3m, y = Bank_mrkt_data$emp.var.rate, z = Bank_mrkt_data$y, color = Bank_mrkt_data$y, colors = c('#BF382A', '#0C4B8E'))
-fig3 = fig3 %>% add_markers()
-fig3 = fig3 %>% layout(scene = list(xaxis = list(title = 'Euribor3m'),
-                     yaxis = list(title = 'Emp.Var.Rate'),
-                     zaxis = list(title = 'Outcome')))
-
-fig3
-
-
-
-fig4 = plot_ly(Bank_mrkt_data, x = Bank_mrkt_data$nr.employed, y = Bank_mrkt_data$emp.var.rate, z = Bank_mrkt_data$y, color = Bank_mrkt_data$y, colors = c('#BF382A', '#0C4B8E'))
-fig4 = fig4 %>% add_markers()
-fig4 = fig4 %>% layout(scene = list(xaxis = list(title = 'nr.employed'),
-                     yaxis = list(title = 'emp.var.rate'),
-                     zaxis = list(title = 'Outcome')))
-
-fig4
-
-
-fig5 = plot_ly(Bank_mrkt_data, x = Bank_mrkt_data$nr.employed, y = Bank_mrkt_data$euribor3m, z = Bank_mrkt_data$y, color = Bank_mrkt_data$y, colors = c('#BF382A', '#0C4B8E'))
-fig5 = fig5 %>% add_markers()
-fig5 = fig5 %>% layout(scene = list(xaxis = list(title = 'nr.employed'),
-                     yaxis = list(title = 'emp.var.rate'),
-                     zaxis = list(title = 'Outcome')))
-
-fig5
-
-
 
 ```
 
@@ -214,93 +57,17 @@ row.names(Bank_mrkt_data_partition_test) = NULL
 
 
 
-
-colname_vec = str_replace_all(toString(names(Bank_mrkt_data)[1:20]),"\\,", "\\ +")
-
-#lda_analysis = lda(Class ~ age + job + marital + education + default + housing + loan + contact + month + day_of_week + duration + campaign + pdays + previous + poutcome + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train)
-
 #LDA on continous variables --- Highest Accuracy 
 
 lda_analysis = lda(Class ~ age +  duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train)
 
-pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
+pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class
 Truth = Bank_mrkt_data_partition_test$Class
-x = table(pred,Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
 
-#LDA of highly correlated factors 
+table(pred)
 
-lda_analysis = lda(Class ~ emp.var.rate + nr.employed + euribor3m, data = Bank_mrkt_data_partition_train)
+confusionMatrix(table(pred, Truth))
 
-pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
-Truth = Bank_mrkt_data_partition_test$Class
-x = table(pred,Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
-
-#LDA of highly varianced correlated factors 
-
-lda_analysis = lda(Class ~ previous + emp.var.rate + cons.price.idx, data = Bank_mrkt_data_partition_train)
-
-pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
-Truth = Bank_mrkt_data_partition_test$Class
-x = table(pred,Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
-
-lda_analysis = lda(Class ~ age +  duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train, prior =  c(.89,.11))
-
-pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
-Truth = Bank_mrkt_data_partition_test$Class
-x = table(pred,Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
-
-#PCA outputs for LDA comparison : model does not perform as well as original LDA with highest accuracy of 84% 
-
-lda_analysis = lda(Class ~ age + duration, data = Bank_mrkt_data_partition_train)
-
-pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
-Truth = Bank_mrkt_data_partition_test$Class
-x = table(pred,Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
-
-
-
-#qda analysis 
-qda_analysis = qda(Class ~ age +  duration + campaign + pdays + previous + emp.var.rate + cons.price.idx + cons.conf.idx + euribor3m + nr.employed, data = Bank_mrkt_data_partition_train)
-
-pred = predict(lda_analysis,newdata=Bank_mrkt_data_partition_test)$class  #Predictions can come in many forms, the class form provides the categorical level of your response.
-Truth = Bank_mrkt_data_partition_test$Class
-x = table(pred,Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
 
 
 ```
@@ -313,14 +80,6 @@ pairs(Bank_mrkt_data_partition_train[, c(1,11,12,13,14,16,17,18,19,20)], col = B
 #Not balanced, only 11% is yes 
 pairs(Bank_mrkt_data[, c(1,11,12,13,14,16,17,18,19,20)], col = Bank_mrkt_data$y)
 
-#bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,12,13,14,16,17,18,19,20)]
-
-#bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,12,20)]
-
-#bank_train_reduced = Bank_mrkt_data_partition_train[, c(1,11,16,18)]
-
-
-#bank_train_reduced = Bank_mrkt_data[, c(1,12,18)]
 
 #promising 
 bank_train_reduced = Bank_mrkt_data[,c(1,11,12,16)]
@@ -374,7 +133,8 @@ ggplot(data = pc.scores, aes(x = PC3, y = PC4 )) + geom_point(aes(col=pc.scores$
 
 ```
 
-#Logistic Regression Full list of variables -- HL GOF test pvalue < 2.2e-16 not a good fit 
+#Logistic Regression Full list of variables -- HL GOF test pvalue < 2.2e-16 not a good fit
+#Need to use for forward selection 
 
 ```{r}
 
@@ -394,125 +154,30 @@ hoslem.test(main.logr$y, fitted(main.logr), g=10)
 
 pred = predict(main.logr, newdata = Bank_mrkt_data_partition_test, type="response")
 
-Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
+Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "no"))
 
 Truth = Bank_mrkt_data_partition_test$Class
 Predt = Bank_mrkt_data_partition_test$Pred_Out
 
-x = table(Predt, Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
+table(Predt)
 
-```
-
-#The Leverage plot looks better here then compared to original model with all predictors  and HSLM test proves better fitting model --- Possibly start thinking of duration as a categorical variable 
-```{r}
-
-logr<-glm(Class ~ age + job + education + contact + campaign + previous ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit') )
-
-summary(logr)
-exp(cbind("Odds ratio" = coef(logr), confint.default(logr, level = 0.95)))
-vif(logr)
-
-plot(logr)
-
-
-
-hoslem.test(logr$y, fitted(logr), g=10)
-
-pred = predict(logr, newdata = Bank_mrkt_data_partition_test, type="response")
-
-Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
-
-Truth = Bank_mrkt_data_partition_test$Class
-Predt = Bank_mrkt_data_partition_test$Pred_Out
-
-x = table(Predt, Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
-
-
+confusionMatrix(table(Predt, Truth))
 
 ```
 
 
-
-
-#Original complex model 
-```{r}
-
-main.logr_l = glm(Class ~ age + job + education + contact,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
-
-
-summary(main.logr_l)
-exp(cbind("Odds ratio" = coef(main.logr_l), confint.default(main.logr_l, level = 0.95)))
-vif(main.logr_l)
-
-plot(main.logr_l)
-
-
-hoslem.test(main.logr_l$y, fitted(main.logr_l), g=10)
-
-
-pred = predict(main.logr_l, newdata = Bank_mrkt_data_partition_test, type="response")
-
-Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
-
-Truth = Bank_mrkt_data_partition_test$Class
-Predt = Bank_mrkt_data_partition_test$Pred_Out
-
-x = table(Predt, Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
-
-logr.model.complex = glm(Class ~ age + job + education + contact + age:contact + age:education ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
-step(main.logr_l,
-     scope = list(upper=logr.model.complex),
-     direction="forward",
-     test="Chisq",
-     data=Bank_mrkt_data_partition_train)
-hoslem.test(logr.model.complex$y, fitted(logr.model.complex), g=10)
-
-pred = predict(logr.model.complex, newdata = Bank_mrkt_data_partition_test, type="response")
-
-Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "Yes", "No"))
-
-Truth = Bank_mrkt_data_partition_test$Class
-Predt = Bank_mrkt_data_partition_test$Pred_Out
-
-x = table(Predt, Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
-
-Senstvty = x[1]/(x[1] + x[2]) * 100 
-Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
-
-
-```
 
 #Winning Base Model 
 ```{r}
 
 main.logr_l_2 = glm(Class ~ duration + cons.price.idx + contact + poutcome,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
 
+
+#Looking at influence points with LRM model to look at residuals 
+
 resid_lev_fit = lrm(Class ~ duration + cons.price.idx + contact + poutcome,data=Bank_mrkt_data_partition_train, x = TRUE,y = TRUE )
 
+#See too many observations to exclude in different variables, creates a highly biased model
 if_point = which.influence(resid_lev_fit, cutoff = 0.0055)
 
 step(main.logr_l_2,
@@ -542,23 +207,10 @@ Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "n
 Truth = Bank_mrkt_data_partition_test$Class
 Predt = Bank_mrkt_data_partition_test$Pred_Out
 
+table(Predt)
+
 confusionMatrix(table(Predt, Truth))
 
-x = table(Predt, Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
-
-Senstvty = x[1]/(x[1] + x[2]) * 100 
-
-Senstvty
-
-Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
-
-Specivty
 
 
 ```
@@ -569,6 +221,8 @@ Specivty
 
 
 main.logr_l_3 = glm(Class ~ duration + month + emp.var.rate + cons.price.idx + contact + poutcome + campaign + euribor3m + cons.conf.idx + job + education ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
+
+#Looking at influence and how many observations to exclude, still would create a highly biased model 
 
 resid_lev_fit = lrm(Class ~ duration + month + emp.var.rate + cons.price.idx + contact + poutcome + campaign + euribor3m + cons.conf.idx + job + education,data=Bank_mrkt_data_partition_train, x = TRUE,y = TRUE )
 
@@ -601,21 +255,6 @@ Predt = Bank_mrkt_data_partition_train$Pred_Out
 
 confusionMatrix(table(Predt, Truth))
 
-x = table(Predt, Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
-
-Senstvty = x[1]/(x[1] + x[2]) * 100 
-
-Senstvty
-
-Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
-
-Specivty
 
 
 #validation against test split
@@ -628,28 +267,17 @@ Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "n
 Truth = Bank_mrkt_data_partition_test$Class
 Predt = Bank_mrkt_data_partition_test$Pred_Out
 
+table(Predt)
+
 confusionMatrix(table(Predt, Truth))
 
-x = table(Predt, Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
-  
-Senstvty = x[1]/(x[1] + x[2]) * 100 
-
-Senstvty
-
-Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
-
-Specivty
 
 
 
+```
 
-
+#Complex Model 
+```{r}
 logr.model.complex = glm(Class ~ duration + month + emp.var.rate + cons.price.idx + contact + poutcome + campaign + euribor3m + cons.conf.idx + job + education + duration:education + duration:job ,data=Bank_mrkt_data_partition_train ,family=binomial(link='logit'))
 step(main.logr_l_3,
      scope = list(upper=logr.model.complex),
@@ -673,23 +301,9 @@ Bank_mrkt_data_partition_test['Pred_Out'] = as.factor(ifelse(pred>.50, "yes", "n
 Truth = Bank_mrkt_data_partition_test$Class
 Predt = Bank_mrkt_data_partition_test$Pred_Out
 
+table(Predt)
+
 confusionMatrix(table(Predt, Truth))
-
-x = table(Predt, Truth) # Creating a confusion matrix
-x
-#Missclassification Error
-ME = (x[2,1]+x[1,2])/sum(x)
-ME
-#Calculating overall accuracy
-1-ME
-
-Senstvty = x[1]/(x[1] + x[2]) * 100 
-
-Senstvty
-
-Specivty = x[2,2]/(x[1,2] + x[2,2]) * 100 
-
-Specivty
 
 
 ```
@@ -747,19 +361,29 @@ plot(roc.perf)
 abline(a=0, b= 1) #Ref line indicating poor performance
 text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
 
+```
 
+```{r}
+#McNemar's Test for competing models 
+
+#Base model vs winning model 
 performance_comp_mat_bse_model_winning = matrix(c(2573, 2067,2282,2358), nrow = 2, dimnames = list("BMdl" = c("No", "Yes"), "WMdl"= c("No", "Yes")))
 
 mcnemar.test(performance_comp_mat_bse_model_winning)
 
 
+#Complex Model vs winning Model 
 performance_comp_mat_compl_model_winning = matrix(c(2277,2363,2282,2358), nrow = 2, dimnames = list("CMdl" = c("No", "Yes"), "WMdl"= c("No", "Yes")))
 
 mcnemar.test(performance_comp_mat_compl_model_winning)
 
+#LDA Model vs winning Model 
+performance_comp_mat_lda_model_winning = matrix(c(2452,2188,2282,2358), nrow = 2, dimnames = list("CMdl" = c("No", "Yes"), "WMdl"= c("No", "Yes")))
+
+mcnemar.test(performance_comp_mat_lda_model_winning)
 
 
-
+  
 ```
 
 

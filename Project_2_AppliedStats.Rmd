@@ -385,19 +385,7 @@ ggplot(Bank_mrkt_data, aes(duration, fill = y)) +
   geom_density(alpha = 0.5) +
   theme_bw()
 
-# Plot above 1500 seconds
-
-Bank_mrkt_data_greaterthan_1500 = Bank_mrkt_data %>% filter(duration>=1500)
-
-ggplot(Bank_mrkt_data_greaterthan_1500 %>% group_by(duration, y) %>%  tally(), 
-       aes(duration, n, fill = y)) +
-      geom_col() +
-      theme_bw()
-
-ggplot(Bank_mrkt_data_greaterthan_1500, aes(duration, fill = y)) +
-  geom_density(alpha = 0.5) +
-  theme_bw()
-
+# Plot above 3000 seconds
 
 
 Bank_mrkt_data_greaterthan_3000 = Bank_mrkt_data %>% filter(duration>=3000)
